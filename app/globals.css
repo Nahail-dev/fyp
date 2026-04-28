@@ -4,78 +4,125 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Postal Cream Base */
+  --background: #FDF8F3;
+  --foreground: #3D2817;
+  --card: #FFFBF7;
+  --card-foreground: #3D2817;
+  --popover: #FFFBF7;
+  --popover-foreground: #3D2817;
+  
+  /* Warm Gold Primary */
+  --primary: #D4AF6A;
+  --primary-foreground: #3D2817;
+  
+  /* Secondary Blush */
+  --secondary: #E8B4B8;
+  --secondary-foreground: #3D2817;
+  
+  /* Muted & Subtle */
+  --muted: #E8DCC8;
+  --muted-foreground: #6B5D52;
+  
+  /* Accent Colors */
+  --accent: #A8B89A;
+  --accent-foreground: #3D2817;
+  
+  /* Delivery Status Colors */
+  --status-pending: #E8989D;
+  --status-transit: #D9A584;
+  --status-delivered: #A8B89A;
+  --status-scheduled: #D4AF6A;
+  
+  /* Destructive */
+  --destructive: #C1462F;
+  --destructive-foreground: #FFFBF7;
+  
+  /* Borders & Inputs */
+  --border: #E8DCC8;
+  --input: #F5F1ED;
+  --ring: #D4AF6A;
+  
+  /* Chart Colors */
+  --chart-1: #D4AF6A;
+  --chart-2: #A8B89A;
+  --chart-3: #E8B4B8;
+  --chart-4: #D9A584;
+  --chart-5: #E8989D;
+  
+  --radius: 0.5rem;
+  
+  /* Sidebar */
+  --sidebar: #FFFBF7;
+  --sidebar-foreground: #3D2817;
+  --sidebar-primary: #D4AF6A;
+  --sidebar-primary-foreground: #3D2817;
+  --sidebar-accent: #A8B89A;
+  --sidebar-accent-foreground: #3D2817;
+  --sidebar-border: #E8DCC8;
+  --sidebar-ring: #D4AF6A;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Dark Postal Theme */
+  --background: #1A1410;
+  --foreground: #E8DCC8;
+  --card: #2C2416;
+  --card-foreground: #E8DCC8;
+  --popover: #2C2416;
+  --popover-foreground: #E8DCC8;
+  
+  /* Muted Gold in Dark */
+  --primary: #B8944F;
+  --primary-foreground: #E8DCC8;
+  
+  /* Secondary Muted */
+  --secondary: #6B5D52;
+  --secondary-foreground: #E8DCC8;
+  
+  /* Muted & Text */
+  --muted: #4A4033;
+  --muted-foreground: #B8944F;
+  
+  /* Accent Green */
+  --accent: #8B9B7F;
+  --accent-foreground: #E8DCC8;
+  
+  /* Delivery Status in Dark */
+  --status-pending: #C9916B;
+  --status-transit: #B8944F;
+  --status-delivered: #8B9B7F;
+  --status-scheduled: #D4AF6A;
+  
+  /* Destructive */
+  --destructive: #E5756B;
+  --destructive-foreground: #1A1410;
+  
+  /* Borders & Inputs */
+  --border: #4A4033;
+  --input: #2C2416;
+  --ring: #B8944F;
+  
+  /* Chart Colors */
+  --chart-1: #B8944F;
+  --chart-2: #8B9B7F;
+  --chart-3: #C9916B;
+  --chart-4: #D4AF6A;
+  --chart-5: #C9A961;
+  
+  --sidebar: #2C2416;
+  --sidebar-foreground: #E8DCC8;
+  --sidebar-primary: #B8944F;
+  --sidebar-primary-foreground: #E8DCC8;
+  --sidebar-accent: #8B9B7F;
+  --sidebar-accent-foreground: #E8DCC8;
+  --sidebar-border: #4A4033;
+  --sidebar-ring: #B8944F;
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
+  --font-sans: 'Inter', 'Poppins', 'Geist', 'Geist Fallback';
+  --font-serif: 'Merriweather', 'Playfair Display', serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -121,5 +168,137 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        rgba(212, 175, 106, 0.02) 0px,
+        rgba(212, 175, 106, 0.02) 1px,
+        transparent 1px,
+        transparent 2px
+      );
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif font-bold;
+  }
+  
+  /* Postal Envelope Card Styling */
+  .postal-card {
+    @apply relative bg-card text-card-foreground rounded-sm shadow-md overflow-hidden;
+    border: 2px solid var(--border);
+  }
+  
+  .postal-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(212, 175, 106, 0.03) 2px,
+        rgba(212, 175, 106, 0.03) 4px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(212, 175, 106, 0.03) 2px,
+        rgba(212, 175, 106, 0.03) 4px
+      );
+    pointer-events: none;
+  }
+  
+  /* Paper Texture */
+  .paper-texture {
+    background-image: 
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+}
+
+/* Postal Animations */
+@keyframes letter-arrival {
+  from {
+    opacity: 0;
+    transform: translateX(100px) rotateY(-25deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+}
+
+@keyframes envelope-open {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes stamp-spin {
+  from {
+    transform: rotate(0deg) scale(0.95);
+  }
+  to {
+    transform: rotate(12deg) scale(1);
+  }
+}
+
+@keyframes delivery-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes postmark-stamp {
+  0% {
+    opacity: 0;
+    transform: rotate(-5deg) scale(0.8);
+  }
+  50% {
+    transform: rotate(5deg) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes letter-flutter {
+  0%, 100% {
+    transform: rotateX(0deg);
+  }
+  50% {
+    transform: rotateX(2deg);
+  }
+}
+
+.animate-letter-arrival {
+  animation: letter-arrival 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-envelope-open {
+  animation: envelope-open 0.8s ease-out;
+}
+
+.animate-stamp-spin {
+  animation: stamp-spin 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-delivery-pulse {
+  animation: delivery-pulse 2s ease-in-out infinite;
+}
+
+.animate-postmark-stamp {
+  animation: postmark-stamp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-letter-flutter {
+  animation: letter-flutter 1.5s ease-in-out infinite;
 }
