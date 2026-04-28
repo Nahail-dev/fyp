@@ -230,7 +230,7 @@
     overflow-x: hidden;
   }
   
-  /* Modern Theme - Clean Postal Pattern */
+  /* Modern Theme - Ink & Light Letter Writing Gradient */
   body::before {
     content: '';
     position: fixed;
@@ -238,97 +238,106 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
-      /* Vertical dotted lines (postal guide) */
-      repeating-linear-gradient(
+    background: 
+      /* Light ink wash from top */
+      radial-gradient(
+        ellipse 100% 60% at 50% -10%,
+        rgba(212, 175, 106, 0.08) 0%,
+        transparent 70%
+      ),
+      /* Subtle warm glow from bottom right - like candlelight */
+      radial-gradient(
+        ellipse 80% 100% at 100% 100%,
+        rgba(232, 180, 184, 0.06) 0%,
+        transparent 60%
+      ),
+      /* Soft blue-gray from top left - like morning light */
+      radial-gradient(
+        ellipse 70% 80% at 0% 0%,
+        rgba(168, 184, 154, 0.05) 0%,
+        transparent 50%
+      ),
+      /* Watercolor paper texture */
+      linear-gradient(
         90deg,
         transparent,
-        transparent calc(100% - 2px),
-        rgba(212, 175, 106, 0.03) calc(100% - 2px),
-        rgba(212, 175, 106, 0.03) 100%
+        transparent 95%,
+        rgba(212, 175, 106, 0.02) 100%
       ),
-      /* Horizontal dotted lines */
-      repeating-linear-gradient(
+      linear-gradient(
         0deg,
         transparent,
-        transparent 79px,
-        rgba(212, 175, 106, 0.04) 79px,
-        rgba(212, 175, 106, 0.04) 80px
-      ),
-      /* Subtle envelope fold pattern */
-      linear-gradient(
-        135deg,
-        rgba(212, 175, 106, 0.01) 0%,
-        rgba(212, 175, 106, 0.02) 25%,
-        rgba(212, 175, 106, 0.01) 50%,
-        rgba(212, 175, 106, 0.02) 75%,
-        rgba(212, 175, 106, 0.01) 100%
+        transparent 95%,
+        rgba(168, 184, 154, 0.02) 100%
       );
     pointer-events: none;
     z-index: -1;
   }
   
-  /* Dark/Night Theme Background */
+  /* Dark/Night Theme Background - Candlelit Letter Writing */
   .dark body::before {
-    background-image: 
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent calc(100% - 2px),
-        rgba(184, 148, 79, 0.02) calc(100% - 2px),
-        rgba(184, 148, 79, 0.02) 100%
+    background:
+      /* Warm golden glow from top - candlelight on paper */
+      radial-gradient(
+        ellipse 100% 70% at 50% -5%,
+        rgba(184, 148, 79, 0.12) 0%,
+        transparent 65%
       ),
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 79px,
-        rgba(184, 148, 79, 0.03) 79px,
-        rgba(184, 148, 79, 0.03) 80px
+      /* Deep warmth from bottom right */
+      radial-gradient(
+        ellipse 90% 110% at 100% 100%,
+        rgba(201, 145, 107, 0.08) 0%,
+        transparent 55%
       ),
+      /* Subtle cool tones from top left */
+      radial-gradient(
+        ellipse 80% 90% at 0% 0%,
+        rgba(139, 155, 127, 0.04) 0%,
+        transparent 50%
+      ),
+      /* Aged ink spread effect */
       linear-gradient(
-        135deg,
-        rgba(184, 148, 79, 0.008) 0%,
-        rgba(184, 148, 79, 0.015) 25%,
-        rgba(184, 148, 79, 0.008) 50%,
-        rgba(184, 148, 79, 0.015) 75%,
-        rgba(184, 148, 79, 0.008) 100%
+        45deg,
+        transparent,
+        transparent 97%,
+        rgba(184, 148, 79, 0.03) 100%
       );
   }
   
-  /* Vintage Theme Background */
+  /* Vintage Theme Background - Aged Ink on Parchment */
   .vintage body::before {
-    background-image: 
-      /* Aged paper grid */
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent calc(100% - 1.5px),
-        rgba(139, 111, 71, 0.04) calc(100% - 1.5px),
-        rgba(139, 111, 71, 0.04) 100%
+    background:
+      /* Antique ink stain from top - old letter aesthetic */
+      radial-gradient(
+        ellipse 110% 65% at 50% -8%,
+        rgba(139, 111, 71, 0.1) 0%,
+        transparent 70%
       ),
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 79px,
-        rgba(139, 111, 71, 0.05) 79px,
-        rgba(139, 111, 71, 0.05) 80px
+      /* Warm sepia glow from bottom right - aged paper */
+      radial-gradient(
+        ellipse 85% 95% at 100% 100%,
+        rgba(201, 155, 155, 0.08) 0%,
+        transparent 65%
       ),
-      /* Aged paper texture overlay */
-      linear-gradient(
-        45deg,
-        rgba(139, 111, 71, 0.02) 0%,
-        rgba(201, 155, 155, 0.02) 25%,
-        rgba(139, 111, 71, 0.02) 50%,
-        rgba(201, 155, 155, 0.02) 75%,
+      /* Deep brown from top left - vintage ink well */
+      radial-gradient(
+        ellipse 75% 85% at -5% 5%,
+        rgba(74, 55, 40, 0.07) 0%,
+        transparent 55%
+      ),
+      /* Aged paper stain pattern */
+      radial-gradient(
+        ellipse 95% 100% at 50% 50%,
+        transparent 0%,
+        transparent 40%,
         rgba(139, 111, 71, 0.02) 100%
       ),
-      /* Parchment grain effect */
-      repeating-linear-gradient(
-        0deg,
-        rgba(74, 55, 40, 0.01) 0px,
-        rgba(74, 55, 40, 0.01) 1px,
-        transparent 1px,
-        transparent 2px
+      /* Crumpled paper texture */
+      linear-gradient(
+        135deg,
+        transparent,
+        transparent 97%,
+        rgba(74, 55, 40, 0.02) 100%
       );
   }
   
