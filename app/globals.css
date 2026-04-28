@@ -226,11 +226,107 @@
   }
   body {
     @apply bg-background text-foreground;
+    position: relative;
+    overflow-x: hidden;
+  }
+  
+  /* Modern Theme - Clean Postal Pattern */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-image: 
+      /* Vertical dotted lines (postal guide) */
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent calc(100% - 2px),
+        rgba(212, 175, 106, 0.03) calc(100% - 2px),
+        rgba(212, 175, 106, 0.03) 100%
+      ),
+      /* Horizontal dotted lines */
       repeating-linear-gradient(
         0deg,
-        rgba(212, 175, 106, 0.02) 0px,
-        rgba(212, 175, 106, 0.02) 1px,
+        transparent,
+        transparent 79px,
+        rgba(212, 175, 106, 0.04) 79px,
+        rgba(212, 175, 106, 0.04) 80px
+      ),
+      /* Subtle envelope fold pattern */
+      linear-gradient(
+        135deg,
+        rgba(212, 175, 106, 0.01) 0%,
+        rgba(212, 175, 106, 0.02) 25%,
+        rgba(212, 175, 106, 0.01) 50%,
+        rgba(212, 175, 106, 0.02) 75%,
+        rgba(212, 175, 106, 0.01) 100%
+      );
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  /* Dark/Night Theme Background */
+  .dark body::before {
+    background-image: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent calc(100% - 2px),
+        rgba(184, 148, 79, 0.02) calc(100% - 2px),
+        rgba(184, 148, 79, 0.02) 100%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 79px,
+        rgba(184, 148, 79, 0.03) 79px,
+        rgba(184, 148, 79, 0.03) 80px
+      ),
+      linear-gradient(
+        135deg,
+        rgba(184, 148, 79, 0.008) 0%,
+        rgba(184, 148, 79, 0.015) 25%,
+        rgba(184, 148, 79, 0.008) 50%,
+        rgba(184, 148, 79, 0.015) 75%,
+        rgba(184, 148, 79, 0.008) 100%
+      );
+  }
+  
+  /* Vintage Theme Background */
+  .vintage body::before {
+    background-image: 
+      /* Aged paper grid */
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent calc(100% - 1.5px),
+        rgba(139, 111, 71, 0.04) calc(100% - 1.5px),
+        rgba(139, 111, 71, 0.04) 100%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 79px,
+        rgba(139, 111, 71, 0.05) 79px,
+        rgba(139, 111, 71, 0.05) 80px
+      ),
+      /* Aged paper texture overlay */
+      linear-gradient(
+        45deg,
+        rgba(139, 111, 71, 0.02) 0%,
+        rgba(201, 155, 155, 0.02) 25%,
+        rgba(139, 111, 71, 0.02) 50%,
+        rgba(201, 155, 155, 0.02) 75%,
+        rgba(139, 111, 71, 0.02) 100%
+      ),
+      /* Parchment grain effect */
+      repeating-linear-gradient(
+        0deg,
+        rgba(74, 55, 40, 0.01) 0px,
+        rgba(74, 55, 40, 0.01) 1px,
         transparent 1px,
         transparent 2px
       );

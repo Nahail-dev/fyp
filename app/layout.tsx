@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Merriweather } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-context'
+import { PostalBgDecoration } from '@/components/postal-bg-decoration'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -39,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-background modern">
       <body className="font-sans antialiased bg-background text-foreground">
+        <PostalBgDecoration />
         <ThemeProvider>
           {children}
         </ThemeProvider>
