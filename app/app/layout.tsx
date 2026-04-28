@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Mail, Inbox, PenTool, User, Settings, LogOut, Stamp } from 'lucide-react';
 import { useState } from 'react';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 
 export default function AppLayout({
   children,
@@ -100,8 +101,11 @@ export default function AppLayout({
         <header className="bg-card border-b border-border px-8 py-6">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-serif font-bold text-foreground">Yuubin</h1>
-            <div className="text-sm text-muted-foreground">
-              Welcome back!
+            <div className="flex items-center gap-6">
+              <ThemeSwitcher />
+              <div className="text-sm text-muted-foreground">
+                Welcome back!
+              </div>
             </div>
           </div>
         </header>

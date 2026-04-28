@@ -120,6 +120,64 @@
   --sidebar-ring: #B8944F;
 }
 
+/* Vintage Theme - Aged Paper & Antique Colors */
+.vintage {
+  /* Aged Parchment Base */
+  --background: #E8DCC8;
+  --foreground: #4A3728;
+  --card: #F5E6D3;
+  --card-foreground: #4A3728;
+  --popover: #F5E6D3;
+  --popover-foreground: #4A3728;
+  
+  /* Antique Copper Primary */
+  --primary: #8B6F47;
+  --primary-foreground: #F5E6D3;
+  
+  /* Faded Rose Secondary */
+  --secondary: #C99B9B;
+  --secondary-foreground: #4A3728;
+  
+  /* Muted Taupe */
+  --muted: #D4C5B9;
+  --muted-foreground: #6B5D52;
+  
+  /* Dusty Green Accent */
+  --accent: #8B9B7F;
+  --accent-foreground: #4A3728;
+  
+  /* Vintage Delivery Status */
+  --status-pending: #D9A584;
+  --status-transit: #8B6F47;
+  --status-delivered: #8B9B7F;
+  --status-scheduled: #C99B9B;
+  
+  /* Destructive */
+  --destructive: #A0522D;
+  --destructive-foreground: #F5E6D3;
+  
+  /* Borders & Inputs */
+  --border: #D4C5B9;
+  --input: #FBF7F2;
+  --ring: #8B6F47;
+  
+  /* Chart Colors */
+  --chart-1: #8B6F47;
+  --chart-2: #8B9B7F;
+  --chart-3: #C99B9B;
+  --chart-4: #D9A584;
+  --chart-5: #A0522D;
+  
+  --sidebar: #F5E6D3;
+  --sidebar-foreground: #4A3728;
+  --sidebar-primary: #8B6F47;
+  --sidebar-primary-foreground: #F5E6D3;
+  --sidebar-accent: #8B9B7F;
+  --sidebar-accent-foreground: #4A3728;
+  --sidebar-border: #D4C5B9;
+  --sidebar-ring: #8B6F47;
+}
+
 @theme inline {
   --font-sans: 'Inter', 'Poppins', 'Geist', 'Geist Fallback';
   --font-serif: 'Merriweather', 'Playfair Display', serif;
