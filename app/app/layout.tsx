@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Inbox, PenTool, User, Settings, LogOut, Stamp } from 'lucide-react';
+import { Mail, Inbox, PenTool, User, Settings, LogOut, Stamp, Send, FileText, Compass } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 
@@ -59,6 +59,30 @@ export default function AppLayout({
           >
             <Stamp className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span className="font-medium">Stamps</span>}
+          </Link>
+
+          <Link
+            href="/app/explore"
+            className="flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
+          >
+            <Compass className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="font-medium">Explore</span>}
+          </Link>
+
+          <Link
+            href="/app/sent"
+            className="flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
+          >
+            <Send className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="font-medium">Sent</span>}
+          </Link>
+
+          <Link
+            href="/app/drafts"
+            className="flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
+          >
+            <FileText className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="font-medium">Drafts</span>}
           </Link>
         </nav>
 
