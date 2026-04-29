@@ -13,14 +13,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('modern');
-  const [mounted, setMounted] = useState(false);
 
   // Load theme from localStorage on mount
   useEffect(() => {
     const storedTheme = (localStorage.getItem('yuubin-theme') as Theme) || 'modern';
     setThemeState(storedTheme);
     applyTheme(storedTheme);
-    setMounted(true);
   }, []);
 
   const applyTheme = (newTheme: Theme) => {
@@ -44,11 +42,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('yuubin-theme', newTheme);
     applyTheme(newTheme);
   };
-
-  // Prevent flash of wrong theme
-  if (!mounted) {
-    return <>{children}</>;
-  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
