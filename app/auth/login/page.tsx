@@ -1,19 +1,57 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { Mail, Lock, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
+  // ✅ Redirect if already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        router.push("/app/profile");
+      }
+    };
+    checkUser();
+  }, [supabase, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ✅ Prevent multiple submissions
+    if (isLoading) return;
+
     setIsLoading(true);
-    // Simulate login
-    setTimeout(() => setIsLoading(false), 1000);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Login successful");
+      router.push("/app/profile");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -23,17 +61,26 @@ export default function LoginPage() {
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <Mail className="w-8 h-8 text-primary" />
-            <span className="text-2xl font-serif font-bold text-foreground">Yuubin</span>
+            <span className="text-2xl font-serif font-bold text-foreground">
+              Yuubin
+            </span>
           </Link>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to continue your letter journey</p>
+          <h1 className="text-3xl font-serif font-bold text-foreground">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground">
+            Sign in to continue your letter journey
+          </p>
         </div>
 
         {/* Login Card */}
         <form onSubmit={handleSubmit} className="postal-card p-8 space-y-6">
           {/* Email Field */}
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-foreground">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-foreground"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -52,7 +99,10 @@ export default function LoginPage() {
 
           {/* Password Field */}
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-foreground">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-foreground"
+            >
               Password
             </label>
             <div className="relative">
@@ -72,7 +122,10 @@ export default function LoginPage() {
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="w-4 h-4 rounded border-border" />
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-border"
+              />
               <span className="text-muted-foreground">Remember me</span>
             </label>
             <Link href="#" className="text-primary hover:underline">
@@ -107,31 +160,43 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Social Login */}
+        {/* Social Login (placeholder) */}
         <div className="grid grid-cols-2 gap-4">
-          <button className="postal-card px-4 py-3 rounded-sm border-2 border-border hover:border-primary/50 transition-all text-sm font-medium text-foreground">
+          <button
+            onClick={() =>
+              supabase.auth.signInWithOAuth({ provider: "google" })
+            }
+            className="postal-card px-4 py-3 rounded-sm border-2 border-border hover:border-primary/50 transition-all text-sm font-medium text-foreground"
+          >
             Google
           </button>
-          <button className="postal-card px-4 py-3 rounded-sm border-2 border-border hover:border-primary/50 transition-all text-sm font-medium text-foreground">
-            Apple
+
+          <button
+            disabled
+            className="postal-card px-4 py-3 rounded-sm border-2 border-border opacity-50 text-sm font-medium text-foreground"
+          >
+            Apple (Soon)
           </button>
         </div>
 
         {/* Sign Up Link */}
         <p className="text-center text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-primary font-medium hover:underline">
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/auth/signup"
+            className="text-primary font-medium hover:underline"
+          >
             Sign up
           </Link>
         </p>
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          By signing in, you agree to our{' '}
+          By signing in, you agree to our{" "}
           <Link href="#" className="hover:text-foreground">
             Terms of Service
-          </Link>
-          {' '}and{' '}
+          </Link>{" "}
+          and{" "}
           <Link href="#" className="hover:text-foreground">
             Privacy Policy
           </Link>
