@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-context'
 import { PostalBgDecoration } from '@/components/postal-bg-decoration'
 import './globals.css'
+import { Toaster } from 'sonner'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -43,9 +44,10 @@ export default function RootLayout({
         <PostalBgDecoration />
         <ThemeProvider>
           {children}
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
     </html>
-  )
+  );
 }
