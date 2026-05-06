@@ -1,76 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Compass, Heart, User, Mail, Filter } from 'lucide-react';
+import { createClient } from '@/lib/supabaseClient';
 
-const mockWriters = [
-  {
-    id: 1,
-    name: 'Emma Watson',
-    interests: ['Poetry', 'Nature', 'Travel'],
-    lettersReceived: 12,
-    stampsCollected: 8,
-    bio: 'Poetry lover and nature enthusiast from Portland',
-    avatar: '👩‍🎨',
-  },
-  {
-    id: 2,
-    name: 'Lucas Chen',
-    interests: ['Technology', 'Photography', 'Philosophy'],
-    lettersReceived: 18,
-    stampsCollected: 15,
-    bio: 'Exploring the intersection of tech and humanity',
-    avatar: '👨‍💻',
-  },
-  {
-    id: 3,
-    name: 'Sophia Martinez',
-    interests: ['Cooking', 'Culture', 'Stories'],
-    lettersReceived: 24,
-    stampsCollected: 22,
-    bio: 'Sharing recipes and stories from around the world',
-    avatar: '👩‍🍳',
-  },
-  {
-    id: 4,
-    name: 'Alex Thompson',
-    interests: ['Music', 'Art', 'Mindfulness'],
-    lettersReceived: 16,
-    stampsCollected: 12,
-    bio: 'Creating art through words and melodies',
-    avatar: '🎨',
-  },
-  {
-    id: 5,
-    name: 'Isabella Romano',
-    interests: ['History', 'Books', 'Science'],
-    lettersReceived: 20,
-    stampsCollected: 18,
-    bio: 'Fascinated by history and sharing knowledge',
-    avatar: '📚',
-  },
-  {
-    id: 6,
-    name: 'David Kim',
-    interests: ['Adventure', 'Sports', 'Environment'],
-    lettersReceived: 14,
-    stampsCollected: 10,
-    bio: 'Outdoor enthusiast and environmental advocate',
-    avatar: '🏔️',
-  },
-];
+interface WriterProfile {
+  id: string;
+  full_name: string;
+  bio: string;
+  interests: string[];
+  avatar_url?: string;
+  letters_received_count?: number;
+  stamps_collected_count?: number;
+}
 
 export default function ExplorePage() {
+  const [writers, setWriters] = useState<WriterProfile[]>([]);
   const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
-  const allInterests = Array.from(new Set(mockWriters.flatMap(w => w.interests)));
+  useEffect(() => {
+    const fetchWriters = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        const response = await fetch(`/api/users${user ? `?userId=${user.id}` : ''}`);
+        const data = await response.json();
+        
+        if (data.users) {
+          setWriters(data.users);
+        }
+      } catch (error) {
+        console.log('[v0] Error fetching writers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWriters();
+  }, []);
+
+  const allInterests = Array.from(new Set(writers.flatMap(w => w.interests || [])));
 
   const filteredWriters = selectedInterest
-    ? mockWriters.filter(writer => writer.interests.includes(selectedInterest))
-    : mockWriters;
+    ? writers.filter(writer => writer.interests?.includes(selectedInterest))
+    : writers;
+
+  if (loading) {
+    return (
+      <div className="p-8 space-y-8">
+        <div className="flex items-center gap-3">
+          <Compass className="w-8 h-8 text-primary" />
+          <h1 className="text-3xl font-serif font-bold text-foreground">Explore Writers</h1>
+        </div>
+        <p className="text-muted-foreground">Loading writers...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="p-8 space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Compass className="w-8 h-8 text-primary" />
@@ -117,10 +107,16 @@ export default function ExplorePage() {
             {/* Writer Header */}
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="text-4xl">{writer.avatar}</div>
+                <div className="text-4xl w-10 h-10 flex items-center justify-center rounded-full bg-muted">
+                  {writer.avatar_url ? (
+                    <img src={writer.avatar_url} alt={writer.full_name} className="w-10 h-10 rounded-full" />
+                  ) : (
+                    <User className="w-6 h-6 text-muted-foreground" />
+                  )}
+                </div>
                 <div>
-                  <h3 className="font-serif font-bold text-foreground">{writer.name}</h3>
-                  <p className="text-xs text-muted-foreground">{writer.lettersReceived} letters received</p>
+                  <h3 className="font-serif font-bold text-foreground">{writer.full_name}</h3>
+                  <p className="text-xs text-muted-foreground">{writer.letters_received_count || 0} letters received</p>
                 </div>
               </div>
               <button className="p-2 rounded-lg border border-border hover:bg-secondary/10 transition">
@@ -129,11 +125,11 @@ export default function ExplorePage() {
             </div>
 
             {/* Bio */}
-            <p className="text-sm text-muted-foreground">{writer.bio}</p>
+            <p className="text-sm text-muted-foreground">{writer.bio || 'No bio provided'}</p>
 
             {/* Interests */}
             <div className="flex flex-wrap gap-2">
-              {writer.interests.map(interest => (
+              {(writer.interests || []).slice(0, 3).map(interest => (
                 <span key={interest} className="text-xs px-3 py-1 bg-muted rounded-full text-muted-foreground">
                   {interest}
                 </span>
@@ -144,10 +140,10 @@ export default function ExplorePage() {
             <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Mail className="w-4 h-4" />
-                <span>{writer.lettersReceived}</span>
+                <span>{writer.letters_received_count || 0}</span>
               </div>
               <div className="flex items-center gap-1">
-                <span>⭐ {writer.stampsCollected} stamps</span>
+                <span>⭐ {writer.stamps_collected_count || 0} stamps</span>
               </div>
             </div>
 

@@ -2,8 +2,14 @@
 
 import Link from 'next/link';
 import { Mail, Inbox, PenTool, User, Settings, LogOut, Stamp, Send, FileText, Compass } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabaseClient';
 import { ThemeSwitcher } from '@/components/theme-switcher';
+
+interface UserProfile {
+  full_name: string;
+  email: string;
+}
 
 export default function AppLayout({
   children,
@@ -11,6 +17,34 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', authUser.id)
+            .single();
+          
+          if (profile) {
+            setUser(profile);
+          }
+        }
+      } catch (error) {
+        console.log('[v0] Error fetching user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -88,6 +122,13 @@ export default function AppLayout({
 
         {/* Bottom Navigation */}
         <div className="border-t border-border p-4 space-y-2">
+          {!loading && user && (
+            <div className="px-4 py-3 mb-2 rounded-sm bg-muted/30">
+              <p className="text-xs text-muted-foreground truncate">Signed in as</p>
+              {sidebarOpen && <p className="font-medium text-sm text-foreground truncate">{user.full_name}</p>}
+            </div>
+          )}
+          
           <Link
             href="/app/profile"
             className="flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
@@ -104,7 +145,13 @@ export default function AppLayout({
             {sidebarOpen && <span className="font-medium">Settings</span>}
           </Link>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors">
+          <button 
+            onClick={async () => {
+              await supabase.auth.signOut();
+              window.location.href = '/auth/login';
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
+          >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span className="font-medium">Sign Out</span>}
           </button>
@@ -128,7 +175,7 @@ export default function AppLayout({
             <div className="flex items-center gap-6">
               <ThemeSwitcher />
               <div className="text-sm text-muted-foreground">
-                Welcome back!
+                {loading ? 'Loading...' : user ? `Welcome back, ${user.full_name}!` : 'Welcome back!'}
               </div>
             </div>
           </div>

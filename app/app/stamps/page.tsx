@@ -1,6 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Award, Lock, Sparkles } from 'lucide-react';
+import { createClient } from '@/lib/supabaseClient';
 
 interface Stamp {
   id: string;
@@ -13,7 +15,7 @@ interface Stamp {
   requirement: string;
 }
 
-const stamps: Stamp[] = [
+const defaultStamps: Stamp[] = [
   {
     id: 'wildflower',
     name: 'Wildflower',
@@ -143,6 +145,43 @@ const getRarityBgColor = (rarity: Stamp['rarity']) => {
 };
 
 export default function StampsPage() {
+  const [stamps, setStamps] = useState<Stamp[]>(defaultStamps);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchStamps = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const response = await fetch(`/api/stamps?userId=${user.id}&type=collected`);
+        const data = await response.json();
+        
+        if (data.stamps) {
+          setStamps(data.stamps);
+        }
+      } catch (error) {
+        console.log('[v0] Error fetching stamps:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStamps();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-8 space-y-8">
+        <div className="space-y-2">
+          <h2 className="text-3xl font-serif font-bold text-foreground">Stamp Collection</h2>
+          <p className="text-muted-foreground">Loading your collection...</p>
+        </div>
+      </div>
+    );
+  }
+
   const obtainedCount = stamps.filter((s) => s.obtained).length;
   const totalStamps = stamps.length;
 
