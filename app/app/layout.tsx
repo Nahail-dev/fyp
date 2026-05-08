@@ -9,6 +9,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 interface UserProfile {
   full_name: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 export default function AppLayout({
@@ -28,12 +29,13 @@ export default function AppLayout({
         if (authUser) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, email')
+            .select('full_name, email, avatar_url')
             .eq('id', authUser.id)
             .single();
           
           if (profile) {
             setUser(profile);
+            console.log('[v0] User profile loaded:', profile);
           }
         }
       } catch (error) {
@@ -123,10 +125,27 @@ export default function AppLayout({
         {/* Bottom Navigation */}
         <div className="border-t border-border p-4 space-y-2">
           {!loading && user && (
-            <div className="px-4 py-3 mb-2 rounded-sm bg-muted/30">
-              <p className="text-xs text-muted-foreground truncate">Signed in as</p>
-              {sidebarOpen && <p className="font-medium text-sm text-foreground truncate">{user.full_name}</p>}
-            </div>
+            <Link
+              href="/app/profile"
+              className="flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors group"
+            >
+              {user.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user.full_name}
+                  className="w-5 h-5 rounded-full flex-shrink-0 object-cover border border-primary/30 group-hover:border-primary transition-all"
+                  title={user.full_name}
+                />
+              ) : (
+                <User className="w-5 h-5 flex-shrink-0" />
+              )}
+              {sidebarOpen && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground truncate">Signed in as</p>
+                  <p className="font-medium text-sm text-foreground truncate">{user.full_name}</p>
+                </div>
+              )}
+            </Link>
           )}
           
           <Link
