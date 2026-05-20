@@ -9,10 +9,10 @@ async function initDatabase() {
   try {
     console.log('[v0] Initializing database tables...');
 
-    // Create profiles table
-    const { error: profilesError } = await supabase.rpc('_execute_sql', {
+    // Create users table
+    const { error: usersError } = await supabase.rpc('_execute_sql', {
       sql: `
-        CREATE TABLE IF NOT EXISTS public.profiles (
+        CREATE TABLE IF NOT EXISTS public.users (
           id UUID NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
           full_name TEXT,
           email TEXT,
@@ -24,20 +24,20 @@ async function initDatabase() {
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW())
         );
         
-        ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
         
-        CREATE POLICY "Users can view their own profile" ON public.profiles
+        CREATE POLICY "Users can view their own profile" ON public.users
           FOR SELECT USING (auth.uid() = id);
         
-        CREATE POLICY "Users can update their own profile" ON public.profiles
+        CREATE POLICY "Users can update their own profile" ON public.users
           FOR UPDATE USING (auth.uid() = id);
       `
     });
 
-    if (profilesError) {
-      console.log('[v0] Note: Profiles table might already exist or RPC not available');
+    if (usersError) {
+      console.log('[v0] Note: Users table might already exist or RPC not available');
     } else {
-      console.log('[v0] Profiles table created successfully');
+      console.log('[v0] Users table created successfully');
     }
 
     // Create letters table

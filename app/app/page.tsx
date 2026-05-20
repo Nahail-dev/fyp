@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, MapPin, Calendar, Heart, Reply } from 'lucide-react';
+import { Mail, Calendar, Heart, Reply } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
@@ -19,7 +19,6 @@ interface Letter {
 interface SenderProfile {
   id: string;
   full_name: string;
-  location: string;
 }
 
 interface Stats {
@@ -86,13 +85,16 @@ export default function Dashboard() {
           for (const letter of lettersData.letters.slice(0, 6)) {
             if (!profiles[letter.sender_id]) {
               const profileResponse = await supabase
-                .from('profiles')
-                .select('id, full_name, location')
+                .from('users')
+                .select('id, full_name')
                 .eq('id', letter.sender_id)
-                .single();
+                .maybeSingle();
               
               if (profileResponse.data) {
-                profiles[letter.sender_id] = profileResponse.data;
+                profiles[letter.sender_id] = {
+                  id: profileResponse.data.id,
+                  full_name: profileResponse.data.full_name,
+                };
               }
             }
           }
@@ -192,12 +194,6 @@ export default function Dashboard() {
                     <h4 className="font-serif font-bold text-foreground group-hover:text-primary transition-colors">
                       {sender?.full_name || 'Unknown Sender'}
                     </h4>
-                    {sender?.location && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                        <MapPin className="w-4 h-4" />
-                        {sender.location}
-                      </div>
-                    )}
                   </div>
                   
                   {/* Status Badge */}

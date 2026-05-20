@@ -179,9 +179,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Inter', 'Poppins', 'Geist', 'Geist Fallback';
-  --font-serif: 'Merriweather', 'Playfair Display', serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: 'Aptos', 'Segoe UI', 'Helvetica Neue', Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, 'Times New Roman', ui-serif, serif;
+  --font-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -228,6 +228,8 @@
     @apply bg-background text-foreground;
     position: relative;
     overflow-x: hidden;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+    text-rendering: optimizeLegibility;
   }
   
   /* Modern Theme - Ink & Light Letter Writing Gradient */
@@ -343,6 +345,7 @@
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif font-bold;
+    letter-spacing: 0;
   }
   
   /* Postal Envelope Card Styling */

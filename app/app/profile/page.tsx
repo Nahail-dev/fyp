@@ -2,20 +2,54 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
-import { User, Mail, MapPin, Pencil, X, Save, LogOut } from 'lucide-react';
+import { User, Mail, Pencil, X, Save, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface UserProfile {
   id: string;
-  full_name: string;
   email: string;
+  username: string;
+  full_name: string;
   bio: string;
-  location: string;
   avatar_url: string | null;
   interests: string[];
+  theme: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+async function getApiProfile(
+  accessToken: string | undefined,
+): Promise<
+  | { profile: UserProfile }
+  | { notFound: true }
+  | { error: string }
+> {
+  const headers: HeadersInit = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+  const res = await fetch('/api/profile', {
+    credentials: 'include',
+    headers,
+  });
+  if (res.status === 404) {
+    return { notFound: true };
+  }
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    const msg =
+      typeof j === 'object' &&
+      j &&
+      'error' in j &&
+      typeof (j as { error: string }).error === 'string'
+        ? (j as { error: string }).error
+        : `HTTP ${res.status}`;
+    return { error: msg };
+  }
+  return { profile: (await res.json()) as UserProfile };
 }
 
 export default function ProfilePage() {
@@ -26,7 +60,6 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     bio: '',
-    location: '',
     interests: '',
   });
   const router = useRouter();
@@ -42,22 +75,60 @@ export default function ProfilePage() {
           return;
         }
 
-        const response = await fetch('/api/profile');
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile');
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        let result = await getApiProfile(token);
+
+        if ('error' in result) {
+          throw new Error(result.error);
         }
 
-        const data: UserProfile = await response.json();
+        if ('notFound' in result) {
+          if (!token) {
+            throw new Error('Not authenticated');
+          }
+          const ensureRes = await fetch('/api/profile/ensure', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!ensureRes.ok) {
+            const errBody = await ensureRes.json().catch(() => ({}));
+            throw new Error(
+              typeof errBody === 'object' &&
+                errBody &&
+                'error' in errBody &&
+                typeof (errBody as { error: string }).error === 'string'
+                ? (errBody as { error: string }).error
+                : 'Could not create your profile',
+            );
+          }
+          result = await getApiProfile(token);
+          if ('error' in result) {
+            throw new Error(result.error);
+          }
+          if ('notFound' in result) {
+            throw new Error(
+              'Profile still missing after create. Check Supabase users table and ensure route logs.',
+            );
+          }
+        }
+
+        const data = 'profile' in result ? result.profile : null;
+        if (!data) {
+          throw new Error('No profile row');
+        }
+
         setProfile(data);
         setFormData({
           full_name: data.full_name,
           bio: data.bio || '',
-          location: data.location || '',
           interests: Array.isArray(data.interests) ? data.interests.join(', ') : '',
         });
       } catch (error) {
-        console.log('[v0] Error fetching profile:', error);
-        toast.error('Failed to load profile');
+        const message = error instanceof Error ? error.message : 'Failed to load profile';
+        console.log('[v0] Error fetching profile:', message, error);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -76,22 +147,38 @@ export default function ProfilePage() {
         .map(i => i.trim())
         .filter(i => i.length > 0);
 
-      const response = await fetch('/api/profile', {
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
+      const res = await fetch('/api/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({
           full_name: formData.full_name,
           bio: formData.bio,
-          location: formData.location,
           interests: interestsArray,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update profile');
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        const msg =
+          typeof j === 'object' &&
+          j &&
+          'error' in j &&
+          typeof (j as { error: string }).error === 'string'
+            ? (j as { error: string }).error
+            : `HTTP ${res.status}`;
+        throw new Error(msg);
       }
 
-      const updatedProfile = await response.json();
+      const updatedProfile = (await res.json()) as UserProfile;
       setProfile(updatedProfile);
       setIsEditing(false);
       toast.success('Profile updated successfully');
@@ -117,9 +204,20 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="p-8 space-y-4">
-        <h1 className="text-3xl font-serif font-bold text-foreground">Profile</h1>
-        <p className="text-muted-foreground">Loading your profile...</p>
+      <div className="min-h-[calc(100vh-96px)] p-8 flex items-center justify-center">
+        <div className="postal-card w-full max-w-sm p-8 flex flex-col items-center text-center gap-5">
+          <div className="relative h-20 w-20">
+            <div className="absolute inset-0 rounded-full border-4 border-muted" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-accent animate-spin" />
+            <div className="absolute inset-3 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center">
+              <Mail className="h-7 w-7 text-primary" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-serif font-bold text-foreground">Profile</h1>
+            <p className="text-sm text-muted-foreground">Loading your profile...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -181,6 +279,7 @@ export default function ProfilePage() {
                   {profile.full_name}
                 </h2>
                 <p className="text-sm text-muted-foreground">{profile.email}</p>
+                <p className="text-xs text-muted-foreground">@{profile.username}</p>
               </div>
             </div>
 
@@ -244,19 +343,16 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                   </div>
 
-                  {/* Location */}
+                  {/* Username (Read-only) */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-foreground">Location</label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
-                      <input
-                        type="text"
-                        value={formData.location}
-                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                        className="w-full pl-10 pr-4 py-3 rounded-sm border border-border bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                        placeholder="Your location"
-                      />
-                    </div>
+                    <label className="block text-sm font-medium text-foreground">Username</label>
+                    <input
+                      type="text"
+                      value={profile.username}
+                      disabled
+                      className="w-full px-4 py-3 rounded-sm border border-border bg-muted text-muted-foreground cursor-not-allowed"
+                    />
+                    <p className="text-xs text-muted-foreground">Username is set on signup</p>
                   </div>
 
                   {/* Bio */}
@@ -318,16 +414,10 @@ export default function ProfilePage() {
                     <p className="text-lg font-medium text-foreground">{profile.email}</p>
                   </div>
 
-                  {/* Location */}
-                  {profile.location && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="w-4 h-4" />
-                        <p className="text-sm uppercase tracking-wide">Location</p>
-                      </div>
-                      <p className="text-lg font-medium text-foreground">{profile.location}</p>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <p className="text-sm uppercase tracking-wide text-muted-foreground">Username</p>
+                    <p className="text-lg font-medium text-foreground">@{profile.username}</p>
+                  </div>
 
                   {/* Bio */}
                   {profile.bio && (

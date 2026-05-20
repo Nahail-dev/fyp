@@ -1,14 +1,9 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Merriweather } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-context'
 import { PostalBgDecoration } from '@/components/postal-bg-decoration'
 import './globals.css'
 import { Toaster } from 'sonner'
-
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
-const _merriweather = Merriweather({ subsets: ["latin"], weight: ['300', '400', '700', '900'] });
 
 export const metadata: Metadata = {
   title: 'Yuubin - Mindful Letter Exchange',
@@ -17,19 +12,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
+        url: '/logos/favicon/favicon-32x32.png',
         media: '(prefers-color-scheme: light)',
       },
       {
-        url: '/icon-dark-32x32.png',
+        url: '/logos/favicon/favicon-32x32.png',
         media: '(prefers-color-scheme: dark)',
       },
       {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/logos/favicon/favicon.ico',
+        type: 'image/x-icon',
       },
     ],
-    apple: '/apple-icon.png',
+    apple: '/logos/favicon/apple-touch-icon.png',
   },
 }
 

@@ -5,6 +5,37 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+type StampRarity = 'common' | 'epic' | 'rare' | 'legendary';
+
+const stampImageByRarity: Record<StampRarity, string> = {
+  common: '/stamps/stamp-common.png',
+  epic: '/stamps/stamp-epic.png',
+  rare: '/stamps/stamp-rare.png',
+  legendary: '/stamps/stamp-legendary.png',
+};
+
+function normalizeRarity(rarity: unknown): StampRarity {
+  if (rarity === 'uncommon') return 'epic';
+  if (
+    rarity === 'common' ||
+    rarity === 'epic' ||
+    rarity === 'rare' ||
+    rarity === 'legendary'
+  ) {
+    return rarity;
+  }
+  return 'common';
+}
+
+function withStampImage(stamp: Record<string, unknown>) {
+  const rarity = normalizeRarity(stamp.rarity);
+  return {
+    ...stamp,
+    rarity,
+    image_url: stampImageByRarity[rarity],
+  };
+}
+
 // GET - Fetch all stamps or user's stamps
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +53,17 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json({ stamps: userStamps }, { status: 200 });
+      const stamps =
+        userStamps?.map((userStamp) => ({
+          ...withStampImage(
+            (userStamp.stamps ?? {}) as Record<string, unknown>,
+          ),
+          obtained: true,
+          count: 1,
+          unlocked_at: userStamp.unlocked_at,
+        })) ?? [];
+
+      return NextResponse.json({ stamps }, { status: 200 });
     }
 
     // Get all stamps
@@ -35,7 +76,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ stamps }, { status: 200 });
+    return NextResponse.json(
+      { stamps: stamps?.map((stamp) => withStampImage(stamp)) ?? [] },
+      { status: 200 },
+    );
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
