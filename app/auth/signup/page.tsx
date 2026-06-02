@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { Mail, Lock, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabaseClient";
@@ -23,17 +23,6 @@ export default function SignupPage() {
 
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-
-  // ✅ Redirect if already logged in
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.push("/app/profile");
-      }
-    };
-    checkUser();
-  }, [supabase, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({

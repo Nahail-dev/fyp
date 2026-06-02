@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, MapPin, Calendar, CheckCircle2, Clock, AlertCircle, Zap } from 'lucide-react';
+import { Mail, Calendar, CheckCircle2, Clock, AlertCircle, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
@@ -14,7 +14,6 @@ interface InboxLetter {
   is_read: boolean;
   sender_profile?: {
     full_name: string;
-    location: string;
   };
 }
 
@@ -71,10 +70,10 @@ export default function InboxPage() {
           const lettersWithProfiles = await Promise.all(
             data.letters.map(async (letter: InboxLetter) => {
               const profileResponse = await supabase
-                .from('profiles')
-                .select('full_name, location')
+                .from('users')
+                .select('full_name')
                 .eq('id', letter.sender_id)
-                .single();
+                .maybeSingle();
               
               return {
                 ...letter,
@@ -178,14 +177,8 @@ export default function InboxPage() {
                     )}
                   </div>
 
-                  {/* Location & Date */}
+                  {/* Date */}
                   <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mb-4">
-                    {letter.sender_profile?.location && (
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {letter.sender_profile.location}
-                      </div>
-                    )}
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
                       {date}

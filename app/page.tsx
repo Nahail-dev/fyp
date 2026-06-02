@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Mail, Stamp, Heart, Send } from 'lucide-react';
+import { ThemeLogo } from '@/components/theme-logo';
 
 export default function Home() {
   return (
@@ -9,8 +10,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="flex items-center justify-between px-6 md:px-12 py-6 border-b border-border">
         <div className="flex items-center gap-2">
-          <Mail className="w-8 h-8 text-primary" />
-          <span className="text-2xl font-serif font-bold text-foreground">Yuubin</span>
+          <ThemeLogo />
         </div>
         <div className="flex items-center gap-4">
           <Link 
@@ -155,8 +155,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Mail className="w-6 h-6 text-primary" />
-              <span className="font-serif font-bold text-foreground">Yuubin</span>
+              <ThemeLogo className="[&_img]:h-8 [&_img]:w-14" />
             </div>
             <p className="text-sm text-muted-foreground">Mindful letter exchange platform.</p>
           </div>

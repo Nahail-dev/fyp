@@ -25,7 +25,7 @@ async function createUser() {
 
     // Create profile
     const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
+      .from('users')
       .insert({
         id: authData.user.id,
         full_name: 'Ali Ahmad',

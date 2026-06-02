@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabaseClient";
@@ -14,17 +14,6 @@ export default function LoginPage() {
 
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-
-  // ✅ Redirect if already logged in
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.push("/app/profile");
-      }
-    };
-    checkUser();
-  }, [supabase, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +40,24 @@ export default function LoginPage() {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
+      }
+    } catch (err) {
+      console.log("[auth/login] Google sign-in failed:", err);
+      toast.error("Google sign-in is temporarily unavailable");
     }
   };
 
@@ -163,14 +170,7 @@ export default function LoginPage() {
         {/* Social Login */}
         <div className="grid grid-cols-2 gap-4">
           <button
-            onClick={() =>
-              supabase.auth.signInWithOAuth({ 
-                provider: "google",
-                options: {
-                  redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`,
-                }
-              })
-            }
+            onClick={handleGoogleSignIn}
             className="postal-card px-4 py-3 rounded-sm border-2 border-border hover:border-primary/50 transition-all text-sm font-medium text-foreground flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

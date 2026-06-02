@@ -8,10 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // GET - Fetch user profile
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { data: user, error } = await supabase
       .from('users')
@@ -46,10 +46,10 @@ export async function GET(
 // PATCH - Update user profile
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { fullName, bio, interests, avatarUrl, theme } = await request.json();
 
     const updates: any = {};

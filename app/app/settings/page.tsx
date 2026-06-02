@@ -18,14 +18,17 @@ export default function SettingsPage() {
     allowMessages: true,
   });
 
-  const handleNotificationChange = (key: string) => {
+  type NotificationKey = keyof typeof notifications;
+  type PrivacyKey = keyof typeof privacy;
+
+  const handleNotificationChange = (key: NotificationKey) => {
     setNotifications(prev => ({
       ...prev,
       [key]: !prev[key]
     }));
   };
 
-  const handlePrivacyChange = (key: string) => {
+  const handlePrivacyChange = (key: PrivacyKey) => {
     setPrivacy(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -50,12 +53,12 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4">
-          {[
+          {([
             { key: 'emailOnDelivery', label: 'Email when letter is delivered', desc: 'Get notified when your letter arrives' },
             { key: 'emailOnReply', label: 'Email on new replies', desc: 'Receive notifications for incoming letters' },
             { key: 'weeklyDigest', label: 'Weekly digest', desc: 'Summary of your letter activity' },
             { key: 'stampUnlock', label: 'Stamp unlock notifications', desc: 'Be notified when you unlock new stamps' },
-          ].map(({ key, label, desc }) => (
+          ] satisfies Array<{ key: NotificationKey; label: string; desc: string }>).map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition">
               <div>
                 <p className="font-medium text-foreground">{label}</p>
@@ -80,11 +83,11 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4">
-          {[
+          {([
             { key: 'profilePublic', label: 'Public profile', desc: 'Allow others to view your profile' },
             { key: 'showStamps', label: 'Show stamp collection', desc: 'Display your stamps publicly' },
             { key: 'allowMessages', label: 'Allow messages', desc: 'Let others send you letters' },
-          ].map(({ key, label, desc }) => (
+          ] satisfies Array<{ key: PrivacyKey; label: string; desc: string }>).map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition">
               <div>
                 <p className="font-medium text-foreground">{label}</p>

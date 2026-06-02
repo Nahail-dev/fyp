@@ -5,6 +5,7 @@ import { Mail, Inbox, PenTool, User, Settings, LogOut, Stamp, Send, FileText, Co
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { ThemeSwitcher } from '@/components/theme-switcher';
+import { ThemeLogo } from '@/components/theme-logo';
 
 interface UserProfile {
   full_name: string;
@@ -27,13 +28,15 @@ export default function AppLayout({
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (authUser) {
-          const { data: profile } = await supabase
-            .from('profiles')
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
             .select('full_name, email, avatar_url')
             .eq('id', authUser.id)
-            .single();
-          
-          if (profile) {
+            .maybeSingle();
+
+          if (profileError) {
+            console.log('[v0] Layout profile error:', profileError.message);
+          } else if (profile) {
             setUser(profile);
             console.log('[v0] User profile loaded:', profile);
           }
@@ -56,11 +59,10 @@ export default function AppLayout({
         <div className="p-6 border-b border-border flex items-center justify-between">
           {sidebarOpen && (
             <Link href="/app" className="flex items-center gap-2">
-              <Mail className="w-6 h-6 text-primary" />
-              <span className="font-serif font-bold text-foreground">Yuubin</span>
+              <ThemeLogo className="[&_img]:h-8 [&_img]:w-14" />
             </Link>
           )}
-          {!sidebarOpen && <Mail className="w-6 h-6 text-primary" />}
+          {!sidebarOpen && <ThemeLogo iconOnly />}
         </div>
 
         {/* Navigation */}
@@ -190,7 +192,7 @@ export default function AppLayout({
         {/* Top Bar */}
         <header className="bg-card border-b border-border px-8 py-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-serif font-bold text-foreground">Yuubin</h1>
+            <ThemeLogo />
             <div className="flex items-center gap-6">
               <ThemeSwitcher />
               <div className="text-sm text-muted-foreground">

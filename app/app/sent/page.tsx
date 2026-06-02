@@ -37,10 +37,10 @@ export default function SentLettersPage() {
             data.letters.map(async (letter: SentLetter) => {
               if (letter.recipient_id) {
                 const profileResponse = await supabase
-                  .from('profiles')
+                  .from('users')
                   .select('full_name')
                   .eq('id', letter.recipient_id)
-                  .single();
+                  .maybeSingle();
                 
                 return {
                   ...letter,

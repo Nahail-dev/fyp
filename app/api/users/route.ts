@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const userId = request.nextUrl.searchParams.get('userId');
     const interest = request.nextUrl.searchParams.get('interest');
 
-    let query = supabase.from('profiles').select('*');
+    let query = supabase.from('users').select('*');
 
     // If userId provided, exclude self
     if (userId) {
