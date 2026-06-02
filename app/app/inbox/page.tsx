@@ -1,23 +1,32 @@
 'use client';
 
-import { Mail, Calendar, CheckCircle2, Clock, AlertCircle, Zap } from 'lucide-react';
+import { Mail, Calendar, CheckCircle2, Clock, MapPin, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import {
+  formatDeliveryEta,
+  getLetterDisplayStatus,
+  getLetterProgress,
+  type LetterDisplayStatus,
+} from '@/lib/letterDeliveryStatus';
 
 interface InboxLetter {
   id: string;
   sender_id: string;
   title: string;
-  status: 'delivered' | 'in-transit' | 'pending';
+  status: string | null;
   created_at: string;
+  sent_at?: string | null;
+  estimated_delivery_at?: string | null;
+  delivered_at?: string | null;
   is_read: boolean;
   sender_profile?: {
     full_name: string;
   };
 }
 
-const getStatusIcon = (status: InboxLetter['status']) => {
+const getStatusIcon = (status: LetterDisplayStatus) => {
   switch (status) {
     case 'delivered':
       return <CheckCircle2 className="w-5 h-5 text-accent" />;
@@ -28,7 +37,7 @@ const getStatusIcon = (status: InboxLetter['status']) => {
   }
 };
 
-const getStatusLabel = (status: InboxLetter['status']) => {
+const getStatusLabel = (status: LetterDisplayStatus) => {
   switch (status) {
     case 'delivered':
       return 'Delivered';
@@ -36,17 +45,6 @@ const getStatusLabel = (status: InboxLetter['status']) => {
       return 'In Transit';
     case 'pending':
       return 'Pending';
-  }
-};
-
-const getStatusProgress = (status: InboxLetter['status']) => {
-  switch (status) {
-    case 'delivered':
-      return 100;
-    case 'in-transit':
-      return 65;
-    case 'pending':
-      return 20;
   }
 };
 
@@ -95,9 +93,10 @@ export default function InboxPage() {
   }, []);
 
   const filteredLetters = letters.filter(letter => {
+    const displayStatus = getLetterDisplayStatus(letter);
     if (filter === 'all') return true;
     if (filter === 'unread') return !letter.is_read;
-    return letter.status === filter;
+    return displayStatus === filter;
   });
   if (loading) {
     return (
@@ -144,7 +143,8 @@ export default function InboxPage() {
             day: 'numeric',
             year: 'numeric'
           });
-          const progress = getStatusProgress(letter.status);
+          const displayStatus = getLetterDisplayStatus(letter);
+          const progress = getLetterProgress(letter);
 
           return (
             <Link
@@ -157,7 +157,7 @@ export default function InboxPage() {
               <div className="flex items-start gap-4">
                 {/* Status Icon */}
                 <div className="pt-1 flex-shrink-0">
-                  {getStatusIcon(letter.status)}
+                  {getStatusIcon(displayStatus)}
                 </div>
 
                 {/* Letter Info */}
@@ -183,13 +183,19 @@ export default function InboxPage() {
                       <Calendar className="w-4 h-4" />
                       {date}
                     </div>
+                    {letter.estimated_delivery_at && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        Arrives {formatDeliveryEta(letter.estimated_delivery_at)}
+                      </div>
+                    )}
                   </div>
 
                   {/* Progress Bar */}
                   <div className="mb-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-medium text-muted-foreground">
-                        {getStatusLabel(letter.status)}
+                        {getStatusLabel(displayStatus)}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {progress}%
@@ -198,14 +204,42 @@ export default function InboxPage() {
                     <div className="w-full bg-muted rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${
-                          letter.status === 'delivered'
+                          displayStatus === 'delivered'
                             ? 'bg-accent'
-                            : letter.status === 'in-transit'
+                            : displayStatus === 'in-transit'
                             ? 'bg-status-transit'
                             : 'bg-status-pending'
                         }`}
                         style={{ width: `${progress}%` }}
                       ></div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <div
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border bg-card ${
+                          progress >= 1
+                            ? 'border-primary text-primary'
+                            : 'border-border text-muted-foreground'
+                        }`}
+                      >
+                        <Mail className="h-3 w-3" />
+                      </div>
+                      <div className="h-px flex-1 bg-border">
+                        <div
+                          className={`h-px transition-all ${
+                            displayStatus === 'delivered' ? 'bg-accent' : 'bg-status-transit'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <div
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border bg-card ${
+                          displayStatus === 'delivered'
+                            ? 'border-accent text-accent'
+                            : 'border-border text-muted-foreground'
+                        }`}
+                      >
+                        <MapPin className="h-3 w-3" />
+                      </div>
                     </div>
                   </div>
                 </div>

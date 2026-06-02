@@ -90,6 +90,7 @@ function mapRowToProfile(
     avatar_url: (raw.avatar_url as string | null) ?? null,
     interests: Array.isArray(raw.interests) ? (raw.interests as string[]) : [],
     theme: (raw.theme as string) ?? 'modern',
+    city_uuid_id: (raw.city_uuid_id as string | null) ?? null,
     is_active: (raw.is_active as boolean) ?? true,
     created_at: (raw.created_at as string) ?? new Date().toISOString(),
     updated_at:
@@ -148,7 +149,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { full_name, bio, interests, avatar_url } = body;
+    const { full_name, bio, interests, avatar_url, city_uuid_id } = body;
 
     console.log('[v0] Updating profile for user:', auth.user.id, body);
 
@@ -159,6 +160,10 @@ export async function PUT(request: NextRequest) {
       avatar_url: avatar_url || undefined,
       updated_at: new Date().toISOString(),
     };
+
+    if (Object.prototype.hasOwnProperty.call(body, 'city_uuid_id')) {
+      updatePayload.city_uuid_id = city_uuid_id || null;
+    }
 
     let admin;
     try {
