@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { ThemeLogo } from '@/components/theme-logo';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface UserProfile {
   full_name: string;
@@ -22,6 +24,7 @@ export default function AppLayout({
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -168,8 +171,20 @@ export default function AppLayout({
 
           <button 
             onClick={async () => {
-              await supabase.auth.signOut();
-              window.location.href = '/auth/login';
+              try {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                  toast.error(error.message);
+                  return;
+                }
+                toast.success('Signed out successfully');
+                setUser(null);
+                await new Promise((resolve) => setTimeout(resolve, 800));
+                router.push('/auth/login');
+              } catch (error) {
+                console.log('[v0] Sign out error:', error);
+                toast.error('Failed to sign out');
+              }
             }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
           >

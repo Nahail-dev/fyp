@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-context'
 import { PostalBgDecoration } from '@/components/postal-bg-decoration'
+import { CookieConsent } from '@/components/cookie-consent'
 import './globals.css'
 import { Toaster } from 'sonner'
 
@@ -39,6 +40,7 @@ export default function RootLayout({
         <PostalBgDecoration />
         <ThemeProvider>
           {children}
+          <CookieConsent />
           <Toaster richColors position="top-right" />
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}

@@ -193,9 +193,14 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
-      router.push('/auth/login');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       toast.success('Signed out successfully');
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      router.push('/auth/login');
     } catch (error) {
       console.log('[v0] Sign out error:', error);
       toast.error('Failed to sign out');
