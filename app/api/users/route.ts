@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const userId = request.nextUrl.searchParams.get('userId');
     const interest = request.nextUrl.searchParams.get('interest');
+    const search = request.nextUrl.searchParams.get('search')?.trim();
 
     let query = supabase.from('users').select('*');
 
@@ -20,6 +21,11 @@ export async function GET(request: NextRequest) {
     // If interest provided, filter by interests (assuming interests is a JSON field)
     if (interest) {
       query = query.contains('interests', [interest]);
+    }
+
+    if (search) {
+      const safeSearch = search.replace(/[%_,]/g, '');
+      query = query.ilike('username', `%${safeSearch}%`);
     }
 
     const { data: users, error } = await query.limit(20);

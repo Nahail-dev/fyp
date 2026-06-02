@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Award, Lock, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
-
-type StampRarity = 'common' | 'epic' | 'rare' | 'legendary';
+import { STAMPS, type StampRarity } from '@/lib/stamps';
 
 interface Stamp {
   id: string;
@@ -17,106 +16,6 @@ interface Stamp {
   count: number;
   requirement: string;
 }
-
-const stampImageByRarity: Record<StampRarity, string> = {
-  common: '/stamps/stamp-common.png',
-  epic: '/stamps/stamp-epic.png',
-  rare: '/stamps/stamp-rare.png',
-  legendary: '/stamps/stamp-legendary.png',
-};
-
-const defaultStamps: Stamp[] = [
-  {
-    id: 'wildflower',
-    name: 'Wildflower',
-    description: 'A delicate wildflower blooming in spring',
-    rarity: 'common',
-    obtained: true,
-    count: 5,
-    requirement: 'Send your first letter',
-  },
-  {
-    id: 'mountain',
-    name: 'Mountain Peak',
-    description: 'Standing tall on top of the world',
-    rarity: 'epic',
-    obtained: true,
-    count: 3,
-    requirement: 'Send 5 letters',
-  },
-  {
-    id: 'ocean',
-    name: 'Ocean Wave',
-    description: 'Waves of emotion and connection',
-    rarity: 'epic',
-    obtained: true,
-    count: 2,
-    requirement: 'Receive 5 letters',
-  },
-  {
-    id: 'forest',
-    name: 'Forest',
-    description: 'Lost in the beauty of nature',
-    rarity: 'rare',
-    obtained: false,
-    count: 0,
-    requirement: 'Exchange letters with 10 people',
-  },
-  {
-    id: 'sunset',
-    name: 'Sunset',
-    description: 'A moment frozen in golden light',
-    rarity: 'rare',
-    obtained: false,
-    count: 0,
-    requirement: 'Get 100 likes on your letters',
-  },
-  {
-    id: 'stars',
-    name: 'Starry Night',
-    description: 'Wishing upon a star of hope',
-    rarity: 'rare',
-    obtained: false,
-    count: 0,
-    requirement: 'Write 20 letters',
-  },
-  {
-    id: 'heartbeat',
-    name: 'Heartbeat',
-    description: 'The pulse of human connection',
-    rarity: 'legendary',
-    obtained: false,
-    count: 0,
-    requirement: 'Receive 50 replies to your letters',
-  },
-  {
-    id: 'butterfly',
-    name: 'Butterfly',
-    description: 'Transformation and metamorphosis',
-    rarity: 'legendary',
-    obtained: false,
-    count: 0,
-    requirement: 'Maintain a 30-day streak',
-  },
-  {
-    id: 'feather',
-    name: 'Feather',
-    description: 'Light as a feather, deep as thought',
-    rarity: 'legendary',
-    obtained: false,
-    count: 0,
-    requirement: 'Build a stamp collection of 15',
-  },
-  {
-    id: 'candlelight',
-    name: 'Candlelight',
-    description: 'Illuminating the path to understanding',
-    rarity: 'legendary',
-    obtained: false,
-    count: 0,
-    requirement: 'Get recognized as a Yuubin Legend',
-  },
-];
 
 const getRarityColor = (rarity: StampRarity) => {
   switch (rarity) {
@@ -145,7 +44,14 @@ const getRarityBgColor = (rarity: StampRarity) => {
 };
 
 export default function StampsPage() {
-  const [stamps, setStamps] = useState<Stamp[]>(defaultStamps);
+  const [stamps, setStamps] = useState<Stamp[]>(
+    STAMPS.map((stamp) => ({
+      ...stamp,
+      image_url: stamp.image,
+      obtained: stamp.rarity === 'common',
+      count: stamp.rarity === 'common' ? 1 : 0,
+    })),
+  );
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -160,12 +66,12 @@ export default function StampsPage() {
         
         if (data.stamps) {
           setStamps(
-            data.stamps.map((stamp: Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon' }) => {
+            data.stamps.map((stamp: Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon'; image?: string }) => {
               const rarity = stamp.rarity === 'uncommon' ? 'epic' : stamp.rarity;
               return {
                 ...stamp,
                 rarity,
-                image_url: stamp.image_url || stampImageByRarity[rarity],
+                image_url: stamp.image_url || stamp.image,
               };
             })
           );
@@ -272,7 +178,7 @@ export default function StampsPage() {
                       <div className="text-center space-y-3">
                         <div className={`relative mx-auto h-28 w-28 ${stamp.obtained ? 'animate-stamp-spin' : 'opacity-30 grayscale'}`}>
                           <Image
-                            src={stamp.image_url || stampImageByRarity[stamp.rarity]}
+                            src={stamp.image_url || '/stamps/stamp-common.png'}
                             alt={`${stamp.rarity} stamp artwork`}
                             fill
                             sizes="112px"

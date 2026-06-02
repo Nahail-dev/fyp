@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
-import { User, Mail, Pencil, X, Save, LogOut } from 'lucide-react';
+import { User, Mail, Pencil, X, Save, LogOut, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -15,9 +15,17 @@ interface UserProfile {
   avatar_url: string | null;
   interests: string[];
   theme: string;
+  city_uuid_id: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface CityOption {
+  uuid_id: string;
+  city: string;
+  country: string;
+  admin_name?: string | null;
 }
 
 async function getApiProfile(
@@ -62,6 +70,10 @@ export default function ProfilePage() {
     bio: '',
     interests: '',
   });
+  const [citySearch, setCitySearch] = useState('');
+  const [cityResults, setCityResults] = useState<CityOption[]>([]);
+  const [selectedCity, setSelectedCity] = useState<CityOption | null>(null);
+  const [isSearchingCities, setIsSearchingCities] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -137,6 +149,60 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    if (!profile?.city_uuid_id) {
+      setSelectedCity(null);
+      return;
+    }
+
+    let isMounted = true;
+    fetch(`/api/cities?id=${encodeURIComponent(profile.city_uuid_id)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted) {
+          setSelectedCity(data.city || null);
+        }
+      })
+      .catch((error) => console.log('[profile] City lookup failed:', error));
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.city_uuid_id]);
+
+  useEffect(() => {
+    if (selectedCity || citySearch.trim().length < 2) {
+      setCityResults([]);
+      setIsSearchingCities(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setIsSearchingCities(true);
+      try {
+        const response = await fetch(
+          `/api/cities?search=${encodeURIComponent(citySearch.trim())}`,
+          { signal: controller.signal },
+        );
+        const data = await response.json();
+        setCityResults(response.ok ? data.cities || [] : []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          console.log('[profile] City search failed:', error);
+        }
+        setCityResults([]);
+      } finally {
+        setIsSearchingCities(false);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [citySearch, selectedCity]);
+
   const handleSaveProfile = async () => {
     if (!profile) return;
 
@@ -163,6 +229,7 @@ export default function ProfilePage() {
           full_name: formData.full_name,
           bio: formData.bio,
           interests: interestsArray,
+          city_uuid_id: selectedCity?.uuid_id ?? null,
         }),
       });
 
@@ -360,6 +427,81 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">Username is set on signup</p>
                   </div>
 
+                  {/* City */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      City for Letter Delivery
+                    </label>
+                    {selectedCity ? (
+                      <div className="flex items-center justify-between gap-3 rounded-sm border border-primary/40 bg-primary/10 px-4 py-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-serif font-bold text-foreground">
+                            {selectedCity.city}, {selectedCity.country}
+                          </p>
+                          {selectedCity.admin_name && (
+                            <p className="truncate text-xs text-muted-foreground">
+                              {selectedCity.admin_name}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCity(null);
+                            setCitySearch('');
+                          }}
+                          className="rounded-sm p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                          aria-label="Remove selected city"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          value={citySearch}
+                          onChange={(e) => setCitySearch(e.target.value)}
+                          placeholder="Search city, e.g. Lahore"
+                          className="w-full px-4 py-3 rounded-sm border border-border bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                        />
+                        {(cityResults.length > 0 || isSearchingCities) && (
+                          <div className="max-h-60 overflow-y-auto rounded-sm border border-border bg-card shadow-xl">
+                            {isSearchingCities ? (
+                              <div className="px-4 py-3 text-sm text-muted-foreground">
+                                Searching cities...
+                              </div>
+                            ) : (
+                              cityResults.map((city) => (
+                                <button
+                                  key={city.uuid_id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedCity(city);
+                                    setCitySearch(`${city.city}, ${city.country}`);
+                                    setCityResults([]);
+                                  }}
+                                  className="w-full px-4 py-3 text-left transition hover:bg-muted"
+                                >
+                                  <p className="font-serif font-bold text-foreground">
+                                    {city.city}, {city.country}
+                                  </p>
+                                  {city.admin_name && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {city.admin_name}
+                                    </p>
+                                  )}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      This is used to estimate delayed letter delivery.
+                    </p>
+                  </div>
+
                   {/* Bio */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-foreground">Bio</label>
@@ -422,6 +564,18 @@ export default function ProfilePage() {
                   <div className="space-y-2">
                     <p className="text-sm uppercase tracking-wide text-muted-foreground">Username</p>
                     <p className="text-lg font-medium text-foreground">@{profile.username}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="w-4 h-4" />
+                      <p className="text-sm uppercase tracking-wide">Letter City</p>
+                    </div>
+                    <p className="text-lg font-medium text-foreground">
+                      {selectedCity
+                        ? `${selectedCity.city}, ${selectedCity.country}`
+                        : 'Not set'}
+                    </p>
                   </div>
 
                   {/* Bio */}

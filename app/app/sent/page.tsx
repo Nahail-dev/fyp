@@ -2,16 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Send, Calendar, User, Eye, Trash2 } from 'lucide-react';
+import { Send, Calendar, User, Eye, Trash2, Zap, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
+import {
+  formatDeliveryEta,
+  getLetterDisplayStatus,
+  getLetterProgress,
+  type LetterDisplayStatus,
+} from '@/lib/letterDeliveryStatus';
 
 interface SentLetter {
   id: string;
   recipient_id: string;
   title: string;
-  status: 'pending' | 'in-transit' | 'delivered';
+  status: string | null;
   created_at: string;
   updated_at: string;
+  sent_at?: string | null;
+  estimated_delivery_at?: string | null;
+  delivered_at?: string | null;
   recipient_profile?: {
     full_name: string;
   };
@@ -63,7 +72,7 @@ export default function SentLettersPage() {
     fetchLetters();
   }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: LetterDisplayStatus) => {
     switch (status) {
       case 'delivered':
         return 'bg-accent/10 text-accent';
@@ -75,8 +84,9 @@ export default function SentLettersPage() {
   };
 
   const filteredLetters = letters.filter(letter => {
+    const displayStatus = getLetterDisplayStatus(letter);
     if (filter === 'all') return true;
-    return letter.status === filter;
+    return displayStatus === filter;
   });
 
   if (loading) {
@@ -124,6 +134,8 @@ export default function SentLettersPage() {
       {/* Letters List */}
       <div className="space-y-4">
         {filteredLetters.map(letter => {
+          const displayStatus = getLetterDisplayStatus(letter);
+          const progress = getLetterProgress(letter);
           const sentDate = new Date(letter.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: '2-digit',
@@ -142,8 +154,18 @@ export default function SentLettersPage() {
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <p className="font-medium text-foreground">{letter.recipient_profile?.full_name || 'Unknown Recipient'}</p>
-                    <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(letter.status)}`}>
-                      {letter.status === 'delivered' ? '✓ Delivered' : 'In Transit'}
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${getStatusColor(displayStatus)}`}>
+                      {displayStatus === 'delivered' ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3" />
+                          Delivered
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-3 w-3" />
+                          In Transit
+                        </>
+                      )}
                     </span>
                   </div>
                   <p className="text-lg font-serif text-foreground">{letter.title}</p>
@@ -153,11 +175,40 @@ export default function SentLettersPage() {
                       <span>Sent {sentDate}</span>
                     </div>
                   </div>
-                  {letter.status === 'delivered' && (
-                    <p className="text-sm text-accent font-medium">
-                      Delivered on {updatedDate}
-                    </p>
-                  )}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {displayStatus === 'delivered'
+                          ? `Delivered on ${updatedDate}`
+                          : `Estimated ${formatDeliveryEta(letter.estimated_delivery_at)}`}
+                      </span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          displayStatus === 'delivered'
+                            ? 'bg-accent'
+                            : 'bg-status-transit'
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      <div className="h-px flex-1 bg-border">
+                        <div
+                          className="h-px bg-primary transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <div
+                        className={`h-2 w-2 rounded-full ${
+                          displayStatus === 'delivered' ? 'bg-accent' : 'bg-muted-foreground/40'
+                        }`}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">

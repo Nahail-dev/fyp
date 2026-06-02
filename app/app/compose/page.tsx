@@ -1,50 +1,166 @@
 'use client';
 
-import { useState } from 'react';
-import { Send, X, Stamp as StampIcon, Save, Eye } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Send, X, Stamp as StampIcon, Save, Eye, User } from 'lucide-react';
+import Image from 'next/image';
+import { transliterateRomanUrdu } from '@/lib/urduTransliteration';
+import { createClient } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
+import { DEFAULT_STAMP_ID, STAMPS, getStampById } from '@/lib/stamps';
 
 interface Letter {
   recipient: string;
   subject: string;
   content: string;
   stamp: string;
+  language: 'en' | 'ur';
 }
 
-const stamps = [
-  { id: 'wildflower', name: 'Wildflower', emoji: '🌸' },
-  { id: 'mountain', name: 'Mountain Peak', emoji: '🏔️' },
-  { id: 'ocean', name: 'Ocean Wave', emoji: '🌊' },
-  { id: 'forest', name: 'Forest', emoji: '🌲' },
-  { id: 'sunset', name: 'Sunset', emoji: '🌅' },
-  { id: 'stars', name: 'Starry Night', emoji: '⭐' },
-  { id: 'heartbeat', name: 'Heartbeat', emoji: '💓' },
-  { id: 'butterfly', name: 'Butterfly', emoji: '🦋' },
-  { id: 'feather', name: 'Feather', emoji: '🪶' },
-  { id: 'candlelight', name: 'Candlelight', emoji: '🕯️' },
-];
+interface RecipientUser {
+  id: string;
+  username: string;
+  full_name: string;
+  avatar_url: string | null;
+}
 
 export default function ComposePage() {
+  const supabase = createClient();
   const [letterData, setLetterData] = useState<Letter>({
     recipient: '',
     subject: '',
     content: '',
-    stamp: 'wildflower',
+    stamp: DEFAULT_STAMP_ID,
+    language: 'en',
   });
   const [showPreview, setShowPreview] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showStampPicker, setShowStampPicker] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<RecipientUser | null>(null);
+  const [recipientResults, setRecipientResults] = useState<RecipientUser[]>([]);
+  const [isSearchingRecipients, setIsSearchingRecipients] = useState(false);
+
+  useEffect(() => {
+    if (selectedRecipient || letterData.recipient.trim().length < 2) {
+      setRecipientResults([]);
+      setIsSearchingRecipients(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      setIsSearchingRecipients(true);
+
+      try {
+        const response = await fetch(
+          `/api/users?search=${encodeURIComponent(letterData.recipient.trim())}`,
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          setRecipientResults([]);
+          return;
+        }
+
+        setRecipientResults(
+          (data.users || []).map((user: RecipientUser) => ({
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+          })),
+        );
+      } catch (error) {
+        console.log('[compose] Recipient search failed:', error);
+        setRecipientResults([]);
+      } finally {
+        setIsSearchingRecipients(false);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [letterData.recipient, selectedRecipient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedRecipient) return;
     setIsSending(true);
-    // Simulate sending
-    setTimeout(() => {
+
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        toast.error('Please sign in before sending a letter');
+        return;
+      }
+
+      const response = await fetch('/api/letters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderId: user.id,
+          recipientId: selectedRecipient.id,
+          title: letterData.subject,
+          content: letterData.content,
+          status: 'sent',
+          language: letterData.language,
+          stampId: letterData.stamp,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          typeof data.error === 'string' ? data.error : 'Failed to send letter',
+        );
+      }
+
+      const estimatedDelivery = data.letter?.estimated_delivery_at
+        ? new Date(data.letter.estimated_delivery_at).toLocaleString()
+        : null;
+
+      toast.success(
+        estimatedDelivery
+          ? `Letter sent. Estimated delivery: ${estimatedDelivery}`
+          : 'Letter sent successfully',
+      );
       setIsSending(false);
-      setLetterData({ recipient: '', subject: '', content: '', stamp: 'wildflower' });
-    }, 1500);
+      setLetterData({ recipient: '', subject: '', content: '', stamp: DEFAULT_STAMP_ID, language: 'en' });
+      setSelectedRecipient(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send letter');
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const currentStamp = stamps.find((s) => s.id === letterData.stamp);
+  const currentStamp = getStampById(letterData.stamp);
+  const isUrdu = letterData.language === 'ur';
+  const writingDirection = isUrdu ? 'rtl' : 'ltr';
+  const writingAlign = isUrdu ? 'text-right' : 'text-left';
+  const writingFont = isUrdu
+    ? "[font-family:'Noto_Nastaliq_Urdu','Noto_Naskh_Arabic','Arial',sans-serif]"
+    : 'font-serif';
+
+  const updateTextField = (field: 'subject' | 'content', value: string) => {
+    setLetterData({
+      ...letterData,
+      [field]: isUrdu ? transliterateRomanUrdu(value) : value,
+    });
+  };
+
+  const selectRecipient = (recipient: RecipientUser) => {
+    setSelectedRecipient(recipient);
+    setLetterData({ ...letterData, recipient: recipient.username });
+    setRecipientResults([]);
+  };
+
+  const clearRecipient = () => {
+    setSelectedRecipient(null);
+    setRecipientResults([]);
+    setLetterData({ ...letterData, recipient: '' });
+  };
 
   return (
     <div className="p-8 space-y-8">
@@ -59,36 +175,151 @@ export default function ComposePage() {
         {/* Editor */}
         <div className="lg:col-span-2 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Recipient */}
+            {/* Language */}
             <div className="postal-card p-6 space-y-3">
               <label className="block text-sm font-serif font-bold text-foreground">
-                Recipient
+                Letter Language
               </label>
-              <input
-                type="text"
-                placeholder="Who would you like to write to?"
-                value={letterData.recipient}
-                onChange={(e) =>
-                  setLetterData({ ...letterData, recipient: e.target.value })
-                }
-                className="w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-serif"
-                required
-              />
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'en', label: 'English' },
+                  { value: 'ur', label: 'Urdu' },
+                ].map((language) => (
+                  <button
+                    key={language.value}
+                    type="button"
+                    onClick={() =>
+                      setLetterData({
+                        ...letterData,
+                        language: language.value as Letter['language'],
+                      })
+                    }
+                    className={`rounded-sm border px-4 py-3 font-serif font-bold transition ${
+                      letterData.language === language.value
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {language.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recipient */}
+            <div className="postal-card p-6 space-y-3 !overflow-visible">
+              <label className="block text-sm font-serif font-bold text-foreground">
+                Recipient Username
+              </label>
+              <div>
+                {selectedRecipient ? (
+                  <div className="flex items-center justify-between gap-3 rounded-sm border border-primary/40 bg-primary/10 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {selectedRecipient.avatar_url ? (
+                        <img
+                          src={selectedRecipient.avatar_url}
+                          alt={selectedRecipient.full_name}
+                          className="h-9 w-9 shrink-0 rounded-full border border-primary/30 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-muted">
+                          <User className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate font-serif font-bold text-foreground">
+                          @{selectedRecipient.username}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {selectedRecipient.full_name}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearRecipient}
+                      className="rounded-sm p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                      aria-label="Remove recipient"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Search username, e.g. @nahail"
+                      value={letterData.recipient}
+                      onChange={(e) =>
+                        setLetterData({ ...letterData, recipient: e.target.value.replace(/^@/, '') })
+                      }
+                      className="w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-serif"
+                      required
+                    />
+                    {(recipientResults.length > 0 || isSearchingRecipients) && (
+                      <div className="mt-2 max-h-72 overflow-y-auto rounded-sm border border-border bg-card shadow-2xl">
+                        {isSearchingRecipients ? (
+                          <div className="px-4 py-3 text-sm text-muted-foreground">
+                            Searching users...
+                          </div>
+                        ) : (
+                          recipientResults.map((recipient) => (
+                            <button
+                              key={recipient.id}
+                              type="button"
+                              onClick={() => selectRecipient(recipient)}
+                              className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-muted"
+                            >
+                              {recipient.avatar_url ? (
+                                <img
+                                  src={recipient.avatar_url}
+                                  alt={recipient.full_name}
+                                  className="h-9 w-9 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                                  <User className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate font-serif font-bold text-foreground">
+                                  @{recipient.username}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {recipient.full_name}
+                                </p>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    {letterData.recipient.trim().length >= 2 &&
+                      !isSearchingRecipients &&
+                      recipientResults.length === 0 && (
+                        <p className="pt-2 text-xs text-muted-foreground">
+                          No user selected yet. Choose a user from search results.
+                        </p>
+                      )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Subject */}
             <div className="postal-card p-6 space-y-3">
               <label className="block text-sm font-serif font-bold text-foreground">
-                Subject
+                {isUrdu ? 'موضوع' : 'Subject'}
               </label>
               <input
                 type="text"
-                placeholder="What's your letter about?"
+                dir={writingDirection}
+                placeholder={isUrdu ? 'آپ کے خط کا موضوع کیا ہے؟' : "What's your letter about?"}
                 value={letterData.subject}
                 onChange={(e) =>
-                  setLetterData({ ...letterData, subject: e.target.value })
+                  updateTextField('subject', e.target.value)
                 }
-                className="w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-serif text-lg"
+                className={`w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-lg ${writingAlign} ${writingFont}`}
                 required
               />
             </div>
@@ -96,19 +327,25 @@ export default function ComposePage() {
             {/* Content */}
             <div className="postal-card p-6 space-y-3">
               <label className="block text-sm font-serif font-bold text-foreground">
-                Letter Content
+                {isUrdu ? 'خط کا متن' : 'Letter Content'}
               </label>
               <textarea
-                placeholder="Dear Friend,&#10;&#10;I wanted to share..."
+                dir={writingDirection}
+                placeholder={
+                  isUrdu
+                    ? 'پیارے دوست،\n\nمیں آپ سے یہ بات شیئر کرنا چاہتا/چاہتی ہوں...'
+                    : 'Dear Friend,\n\nI wanted to share...'
+                }
                 value={letterData.content}
                 onChange={(e) =>
-                  setLetterData({ ...letterData, content: e.target.value })
+                  updateTextField('content', e.target.value)
                 }
-                className="w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-serif min-h-96 resize-none"
+                className={`w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-96 resize-none leading-loose ${writingAlign} ${writingFont}`}
                 required
               />
               <p className="text-xs text-muted-foreground">
                 {letterData.content.length} characters
+                {isUrdu && ' · Roman Urdu typing is enabled'}
               </p>
             </div>
 
@@ -133,7 +370,7 @@ export default function ComposePage() {
 
               <button
                 type="submit"
-                disabled={isSending || !letterData.recipient || !letterData.subject || !letterData.content}
+                disabled={isSending || !selectedRecipient || !letterData.subject || !letterData.content}
                 className="ml-auto px-8 py-3 bg-primary text-primary-foreground rounded-sm hover:bg-primary/90 font-serif font-bold transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {isSending ? (
@@ -156,11 +393,17 @@ export default function ComposePage() {
             {/* Current Stamp Display */}
             <div className="flex justify-center p-6 border-2 border-primary/20 rounded-sm bg-gradient-to-br from-primary/5 to-primary/10">
               <div className="text-center space-y-2">
-                <div className="text-6xl animate-stamp-spin">
-                  {currentStamp?.emoji}
+                <div className="relative mx-auto h-24 w-24 animate-stamp-spin">
+                  <Image
+                    src={currentStamp.image}
+                    alt={`${currentStamp.name} stamp`}
+                    fill
+                    sizes="96px"
+                    className="object-contain drop-shadow-md"
+                  />
                 </div>
                 <p className="font-serif font-bold text-foreground text-sm">
-                  {currentStamp?.name}
+                  {currentStamp.name}
                 </p>
               </div>
             </div>
@@ -177,7 +420,7 @@ export default function ComposePage() {
             {/* Stamp Grid */}
             {showStampPicker && (
               <div className="grid grid-cols-3 gap-3">
-                {stamps.map((stamp) => (
+                {STAMPS.map((stamp) => (
                   <button
                     key={stamp.id}
                     onClick={() => {
@@ -191,7 +434,15 @@ export default function ComposePage() {
                     }`}
                     title={stamp.name}
                   >
-                    <div className="text-2xl">{stamp.emoji}</div>
+                    <div className="relative h-12 w-12">
+                      <Image
+                        src={stamp.image}
+                        alt={`${stamp.name} stamp`}
+                        fill
+                        sizes="48px"
+                        className="object-contain"
+                      />
+                    </div>
                   </button>
                 ))}
               </div>
@@ -229,33 +480,50 @@ export default function ComposePage() {
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto postal-card p-12 relative space-y-6">
             <button
               onClick={() => setShowPreview(false)}
-              className="absolute top-4 right-4 p-2 hover:bg-muted rounded-sm transition-colors"
+              className={`absolute top-4 p-2 hover:bg-muted rounded-sm transition-colors ${isUrdu ? 'right-4' : 'left-4'}`}
             >
               <X className="w-6 h-6 text-foreground" />
             </button>
 
             {/* Stamp in Preview */}
-            <div className="absolute top-6 right-6 w-20 h-24 border-2 border-primary/30 rounded-sm bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+            <div className={`absolute top-6 w-20 h-24 border-2 border-primary/30 rounded-sm bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ${isUrdu ? 'left-6' : 'right-6'}`}>
               <div className="text-center text-xs font-serif font-bold text-primary">
                 <div>STAMP</div>
-                <div className="text-xl mt-1">{currentStamp?.emoji}</div>
+                <div className="relative mx-auto mt-1 h-12 w-12">
+                  <Image
+                    src={currentStamp.image}
+                    alt={`${currentStamp.name} stamp`}
+                    fill
+                    sizes="48px"
+                    className="object-contain"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Header */}
-            <div className="space-y-4 border-b border-border pb-6">
-              <h2 className="text-3xl font-serif font-bold text-foreground">
-                {letterData.subject || 'Untitled Letter'}
+            <div className={`space-y-4 border-b border-border pb-6 ${isUrdu ? 'pl-24 pt-16' : 'pr-24 pt-16'}`}>
+              <h2
+                dir={writingDirection}
+                className={`w-full break-words text-3xl font-bold text-foreground ${writingAlign} ${writingFont}`}
+              >
+                {letterData.subject || (isUrdu ? 'بلا عنوان خط' : 'Untitled Letter')}
               </h2>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>To: {letterData.recipient || 'Recipient'}</p>
-                <p>Date: Today</p>
+              <div
+                dir={writingDirection}
+                className={`space-y-1 text-sm text-muted-foreground ${writingAlign}`}
+              >
+                <p>{isUrdu ? 'بنام:' : 'To:'} {selectedRecipient ? `@${selectedRecipient.username}` : (isUrdu ? 'وصول کنندہ' : 'Recipient')}</p>
+                <p>{isUrdu ? 'تاریخ:' : 'Date:'} {isUrdu ? 'آج' : 'Today'}</p>
               </div>
             </div>
 
             {/* Content */}
-            <div className="font-serif text-lg leading-relaxed text-foreground whitespace-pre-wrap">
-              {letterData.content || 'Your letter content will appear here...'}
+            <div
+              dir={writingDirection}
+              className={`text-lg leading-loose text-foreground whitespace-pre-wrap ${writingAlign} ${writingFont}`}
+            >
+              {letterData.content || (isUrdu ? 'آپ کے خط کا متن یہاں ظاہر ہوگا...' : 'Your letter content will appear here...')}
             </div>
 
             {/* Close Preview */}

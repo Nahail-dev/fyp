@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { Mail, User, ArrowRight } from "lucide-react";
 import { HCaptchaChallenge, resetHCaptcha } from "@/components/hcaptcha-challenge";
 import { createClient } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+
+interface CityOption {
+  uuid_id: string;
+  city: string;
+  city_ascii?: string | null;
+  country: string;
+  admin_name?: string | null;
+}
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -19,12 +27,49 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [cityResults, setCityResults] = useState<CityOption[]>([]);
+  const [selectedCity, setSelectedCity] = useState<CityOption | null>(null);
+  const [isSearchingCities, setIsSearchingCities] = useState(false);
 
   const lastSubmitRef = useRef(0); // ✅ cooldown
   const isSubmittingRef = useRef(false); // ✅ hard lock
 
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    if (selectedCity || citySearch.trim().length < 2) {
+      setCityResults([]);
+      setIsSearchingCities(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setIsSearchingCities(true);
+      try {
+        const response = await fetch(
+          `/api/cities?search=${encodeURIComponent(citySearch.trim())}`,
+          { signal: controller.signal },
+        );
+        const data = await response.json();
+        setCityResults(response.ok ? data.cities || [] : []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.log("[signup] City search failed:", error);
+        }
+        setCityResults([]);
+      } finally {
+        setIsSearchingCities(false);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [citySearch, selectedCity]);
 
   const showToastBeforeRedirect = async (message: string, href: string) => {
     toast.success(message);
@@ -76,6 +121,12 @@ export default function SignupPage() {
       return;
     }
 
+    if (!selectedCity) {
+      toast.error("Please select your city for letter delivery");
+      isSubmittingRef.current = false;
+      return;
+    }
+
     if (!captchaToken) {
       toast.error("Please complete the captcha");
       isSubmittingRef.current = false;
@@ -92,6 +143,8 @@ export default function SignupPage() {
           captchaToken,
           data: {
             name,
+            full_name: name,
+            city_uuid_id: selectedCity.uuid_id,
           },
         },
       });
@@ -176,6 +229,79 @@ export default function SignupPage() {
                 required
               />
             </div>
+          </div>
+
+          {/* City */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              City for Letter Delivery
+            </label>
+            {selectedCity ? (
+              <div className="flex items-center justify-between gap-3 rounded-sm border border-primary/40 bg-primary/10 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-serif font-bold text-foreground">
+                    {selectedCity.city}, {selectedCity.country}
+                  </p>
+                  {selectedCity.admin_name && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {selectedCity.admin_name}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCity(null);
+                    setCitySearch("");
+                  }}
+                  className="rounded-sm p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                  aria-label="Remove selected city"
+                >
+                  X
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  value={citySearch}
+                  onChange={(e) => setCitySearch(e.target.value)}
+                  placeholder="Search city, e.g. Sahiwal"
+                  className="w-full px-4 py-3 border rounded-sm"
+                  required
+                />
+                {(cityResults.length > 0 || isSearchingCities) && (
+                  <div className="max-h-60 overflow-y-auto rounded-sm border border-border bg-card shadow-xl">
+                    {isSearchingCities ? (
+                      <div className="px-4 py-3 text-sm text-muted-foreground">
+                        Searching cities...
+                      </div>
+                    ) : (
+                      cityResults.map((city) => (
+                        <button
+                          key={city.uuid_id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCity(city);
+                            setCitySearch(`${city.city}, ${city.country}`);
+                            setCityResults([]);
+                          }}
+                          className="w-full px-4 py-3 text-left transition hover:bg-muted"
+                        >
+                          <p className="font-serif font-bold text-foreground">
+                            {city.city}, {city.country}
+                          </p>
+                          {city.admin_name && (
+                            <p className="text-xs text-muted-foreground">
+                              {city.admin_name}
+                            </p>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Password */}

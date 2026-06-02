@@ -1,6 +1,6 @@
 /** `public.users` columns (must match Supabase schema). */
 export const USERS_PROFILE_SELECT =
-  'id, email, username, full_name, avatar_url, bio, interests, theme, is_active, created_at, updated_at' as const;
+  'id, email, username, full_name, avatar_url, bio, interests, theme, is_active, city_uuid_id, created_at, updated_at' as const;
 
 type AuthUserLike = {
   id: string;
@@ -28,6 +28,11 @@ export function defaultUsernameFromAuthUser(user: AuthUserLike): string {
 /** Row for `insert` into `public.users` (matches your Supabase columns). */
 export function buildUsersInsertRow(user: AuthUserLike) {
   const emailLocal = user.email?.split('@')[0] || 'user';
+  const cityUuidId =
+    typeof user.user_metadata?.city_uuid_id === 'string'
+      ? user.user_metadata.city_uuid_id
+      : null;
+
   return {
     id: user.id,
     email: user.email as string,
@@ -40,6 +45,7 @@ export function buildUsersInsertRow(user: AuthUserLike) {
     bio: '',
     interests: [] as string[],
     theme: 'modern',
+    city_uuid_id: cityUuidId,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

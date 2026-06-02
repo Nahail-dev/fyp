@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { buildUsersInsertRow } from '@/lib/usersSchema';
+import { DEFAULT_STAMP_ID, STARTING_COMMON_STAMPS } from '@/lib/stamps';
 
 /**
  * Creates `public.users` when missing. Uses service role so RLS does not block
@@ -72,6 +73,22 @@ export async function POST(request: NextRequest) {
         { error: insertError.message },
         { status: 500 },
       );
+    }
+
+    const { error: inventoryError } = await admin
+      .from('user_stamp_inventory')
+      .upsert(
+        {
+          user_id: user.id,
+          stamp_id: DEFAULT_STAMP_ID,
+          quantity: STARTING_COMMON_STAMPS,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,stamp_id' },
+      );
+
+    if (inventoryError) {
+      console.log('[profile/ensure] stamp inventory seed error:', inventoryError);
     }
 
     return NextResponse.json({ ok: true, created: true });

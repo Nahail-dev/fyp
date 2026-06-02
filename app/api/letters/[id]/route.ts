@@ -15,21 +15,57 @@ export async function GET(
 
     const { data: letter, error } = await supabase
       .from('letters')
-      .select(`
-        *,
-        sender:sender_id(id, username, avatar_url),
-        recipient:recipient_id(id, username, avatar_url),
-        delivery_tracking(*),
-        letter_comments(*)
-      `)
+      .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error) {
+    if (error || !letter) {
       return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ letter }, { status: 200 });
+    const userIds = [letter.sender_id, letter.recipient_id].filter(Boolean);
+    const cityIds = [
+      letter.sender_city_uuid_id,
+      letter.recipient_city_uuid_id,
+    ].filter(Boolean);
+
+    const [{ data: users }, { data: cities }] = await Promise.all([
+      userIds.length > 0
+        ? supabase
+            .from('users')
+            .select('id, username, full_name, avatar_url')
+            .in('id', userIds)
+        : Promise.resolve({ data: [] }),
+      cityIds.length > 0
+        ? supabase
+            .from('cities')
+            .select('uuid_id, city, country, admin_name')
+            .in('uuid_id', cityIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const sender = users?.find((user) => user.id === letter.sender_id) ?? null;
+    const recipient =
+      users?.find((user) => user.id === letter.recipient_id) ?? null;
+    const sender_city =
+      cities?.find((city) => city.uuid_id === letter.sender_city_uuid_id) ??
+      null;
+    const recipient_city =
+      cities?.find((city) => city.uuid_id === letter.recipient_city_uuid_id) ??
+      null;
+
+    return NextResponse.json(
+      {
+        letter: {
+          ...letter,
+          sender,
+          recipient,
+          sender_city,
+          recipient_city,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
