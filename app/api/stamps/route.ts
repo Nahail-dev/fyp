@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       const stamps =
         userStamps?.map((userStamp) => ({
           ...withStampImage(
-            (userStamp.stamps ?? {}) as Record<string, unknown>,
+            (userStamp.stamps ?? {}) as unknown as Record<string, unknown>,
           ),
           obtained: true,
           count: 1,

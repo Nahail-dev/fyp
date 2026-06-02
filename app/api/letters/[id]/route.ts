@@ -8,10 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // GET - Fetch single letter
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { data: letter, error } = await supabase
       .from('letters')
@@ -38,10 +38,10 @@ export async function GET(
 // PATCH - Update letter
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { title, content, status, recipientId } = await request.json();
 
     const updates: any = {};
@@ -75,10 +75,10 @@ export async function PATCH(
 // DELETE - Delete letter
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const { error } = await supabase
       .from('letters')
