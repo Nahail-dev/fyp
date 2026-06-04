@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Indigo avatar">
+  <rect width="240" height="240" rx="120" fill="#bac7ff"/>
+  <circle cx="120" cy="114" r="68" fill="#2b2d6e"/>
+  <circle cx="120" cy="110" r="50" fill="#c58b6a"/>
+  <path d="M68 109c2-47 34-72 73-64 27 6 45 30 48 65-37-21-78-24-121-1z" fill="#111827"/>
+  <circle cx="101" cy="117" r="6" fill="#14110e"/>
+  <circle cx="139" cy="117" r="6" fill="#14110e"/>
+  <path d="M99 140c13 10 29 10 42 0" fill="none" stroke="#753923" stroke-width="7" stroke-linecap="round"/>
+  <path d="M48 212c16-41 45-62 72-62s56 21 72 62" fill="#334155"/>
+  <circle cx="178" cy="64" r="14" fill="#fef3c7"/>
+</svg>

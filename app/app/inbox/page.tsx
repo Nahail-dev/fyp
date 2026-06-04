@@ -52,6 +52,8 @@ export default function InboxPage() {
   const [letters, setLetters] = useState<InboxLetter[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [, setProgressTick] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function InboxPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+        setCurrentUserId(user.id);
 
         const response = await fetch(`/api/letters?userId=${user.id}&type=inbox`);
         const data = await response.json();
@@ -91,6 +94,42 @@ export default function InboxPage() {
 
     fetchLetters();
   }, []);
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setProgressTick((value) => value + 1);
+    }, 5000);
+
+    return () => window.clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const syncDelivered = async () => {
+      const response = await fetch('/api/letters', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUserId, syncDelivered: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && Array.isArray(data.letters) && data.letters.length > 0) {
+        const deliveredIds = new Set(data.letters.map((letter: { id: string }) => letter.id));
+        const deliveredAt = new Date().toISOString();
+        setLetters((current) =>
+          current.map((letter) =>
+            deliveredIds.has(letter.id)
+              ? { ...letter, status: 'delivered', delivered_at: deliveredAt }
+              : letter,
+          ),
+        );
+      }
+    };
+
+    syncDelivered();
+    const interval = window.setInterval(syncDelivered, 30000);
+    return () => window.clearInterval(interval);
+  }, [currentUserId]);
 
   const filteredLetters = letters.filter(letter => {
     const displayStatus = getLetterDisplayStatus(letter);

@@ -30,6 +30,9 @@ export default function SentLettersPage() {
   const [letters, setLetters] = useState<SentLetter[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [, setProgressTick] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function SentLettersPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+        setCurrentUserId(user.id);
 
         const response = await fetch(`/api/letters?userId=${user.id}&type=sent`);
         const data = await response.json();
@@ -71,6 +75,69 @@ export default function SentLettersPage() {
 
     fetchLetters();
   }, []);
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setProgressTick((value) => value + 1);
+    }, 5000);
+
+    return () => window.clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const syncDelivered = async () => {
+      const response = await fetch('/api/letters', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUserId, syncDelivered: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && Array.isArray(data.letters) && data.letters.length > 0) {
+        const deliveredIds = new Set(data.letters.map((letter: { id: string }) => letter.id));
+        const deliveredAt = new Date().toISOString();
+        setLetters((current) =>
+          current.map((letter) =>
+            deliveredIds.has(letter.id)
+              ? {
+                  ...letter,
+                  status: 'delivered',
+                  delivered_at: deliveredAt,
+                  updated_at: deliveredAt,
+                }
+              : letter,
+          ),
+        );
+      }
+    };
+
+    syncDelivered();
+    const interval = window.setInterval(syncDelivered, 30000);
+    return () => window.clearInterval(interval);
+  }, [currentUserId]);
+
+  const deleteLetter = async (letterId: string) => {
+    if (!currentUserId) return;
+    setDeletingId(letterId);
+
+    try {
+      const response = await fetch(`/api/letters/${letterId}?userId=${currentUserId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to delete letter');
+      }
+
+      setLetters((current) => current.filter((letter) => letter.id !== letterId));
+    } catch (error) {
+      console.log('[sent] delete failed:', error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const getStatusColor = (status: LetterDisplayStatus) => {
     switch (status) {
@@ -219,7 +286,13 @@ export default function SentLettersPage() {
                   >
                     <Eye className="w-5 h-5 text-muted-foreground" />
                   </Link>
-                  <button className="p-2 rounded-lg border border-border hover:bg-destructive/10 transition">
+                  <button
+                    type="button"
+                    onClick={() => deleteLetter(letter.id)}
+                    disabled={deletingId === letter.id}
+                    className="p-2 rounded-lg border border-border hover:bg-destructive/10 transition disabled:opacity-50"
+                    title="Delete letter"
+                  >
                     <Trash2 className="w-5 h-5 text-destructive" />
                   </button>
                 </div>

@@ -1,6 +1,6 @@
 /** `public.users` columns (must match Supabase schema). */
 export const USERS_PROFILE_SELECT =
-  'id, email, username, full_name, avatar_url, bio, interests, theme, is_active, city_uuid_id, created_at, updated_at' as const;
+  'id, email, username, full_name, avatar_url, bio, interests, theme, is_active, city_uuid_id, profile_visibility, created_at, updated_at' as const;
 
 type AuthUserLike = {
   id: string;
@@ -46,6 +46,7 @@ export function buildUsersInsertRow(user: AuthUserLike) {
     interests: [] as string[],
     theme: 'modern',
     city_uuid_id: cityUuidId,
+    profile_visibility: 'public',
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

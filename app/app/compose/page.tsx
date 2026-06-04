@@ -38,6 +38,105 @@ export default function ComposePage() {
   const [selectedRecipient, setSelectedRecipient] = useState<RecipientUser | null>(null);
   const [recipientResults, setRecipientResults] = useState<RecipientUser[]>([]);
   const [isSearchingRecipients, setIsSearchingRecipients] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id ?? null);
+    };
+
+    loadCurrentUser();
+  }, []);
+
+  useEffect(() => {
+    const loadDraft = async () => {
+      const draftParam = new URLSearchParams(window.location.search).get('draft');
+      if (!draftParam) return;
+
+      try {
+        const response = await fetch(`/api/letters/${draftParam}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof data.error === 'string' ? data.error : 'Draft not found');
+        }
+
+        const draft = data.letter;
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user || draft.sender_id !== user.id || draft.status !== 'draft') {
+          throw new Error('Draft not available');
+        }
+
+        setDraftId(draft.id);
+        setLetterData({
+          recipient: draft.recipient?.username || '',
+          subject: draft.title || '',
+          content: draft.content || '',
+          stamp: draft.stamp_id || DEFAULT_STAMP_ID,
+          language: draft.language === 'ur' ? 'ur' : 'en',
+        });
+        if (draft.recipient) {
+          setSelectedRecipient({
+            id: draft.recipient.id,
+            username: draft.recipient.username,
+            full_name: draft.recipient.full_name || draft.recipient.username,
+            avatar_url: draft.recipient.avatar_url,
+          });
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Could not load draft');
+      }
+    };
+
+    loadDraft();
+  }, []);
+
+  useEffect(() => {
+    const recipientParam = new URLSearchParams(window.location.search).get('recipient');
+    if (!recipientParam || selectedRecipient || !currentUserId || draftId) return;
+
+    const loadRecipient = async () => {
+      try {
+        const params = new URLSearchParams({
+          search: recipientParam,
+          userId: currentUserId,
+        });
+        const response = await fetch(`/api/users?${params.toString()}`);
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) return;
+
+        const recipient = (data.users || []).find(
+          (user: RecipientUser) =>
+            user.username.toLowerCase() === recipientParam.toLowerCase(),
+        );
+
+        if (recipient) {
+          setSelectedRecipient({
+            id: recipient.id,
+            username: recipient.username,
+            full_name: recipient.full_name,
+            avatar_url: recipient.avatar_url,
+          });
+          setLetterData((current) => ({
+            ...current,
+            recipient: recipient.username,
+          }));
+        }
+      } catch (error) {
+        console.log('[compose] Explore recipient preload failed:', error);
+      }
+    };
+
+    loadRecipient();
+  }, [currentUserId, draftId, selectedRecipient]);
 
   useEffect(() => {
     if (selectedRecipient || letterData.recipient.trim().length < 2) {
@@ -50,8 +149,15 @@ export default function ComposePage() {
       setIsSearchingRecipients(true);
 
       try {
+        const params = new URLSearchParams({
+          search: letterData.recipient.trim(),
+        });
+        if (currentUserId) {
+          params.set('userId', currentUserId);
+        }
+
         const response = await fetch(
-          `/api/users?search=${encodeURIComponent(letterData.recipient.trim())}`,
+          `/api/users?${params.toString()}`,
         );
         const data = await response.json();
 
@@ -66,7 +172,7 @@ export default function ComposePage() {
             username: user.username,
             full_name: user.full_name,
             avatar_url: user.avatar_url,
-          })),
+          })).filter((user: RecipientUser) => user.id !== currentUserId),
         );
       } catch (error) {
         console.log('[compose] Recipient search failed:', error);
@@ -77,7 +183,7 @@ export default function ComposePage() {
     }, 300);
 
     return () => window.clearTimeout(timeout);
-  }, [letterData.recipient, selectedRecipient]);
+  }, [currentUserId, letterData.recipient, selectedRecipient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +198,12 @@ export default function ComposePage() {
 
       if (authError || !user) {
         toast.error('Please sign in before sending a letter');
+        return;
+      }
+
+      if (selectedRecipient.id === user.id) {
+        toast.error('You cannot send a letter to yourself');
+        clearRecipient();
         return;
       }
 
@@ -125,6 +237,13 @@ export default function ComposePage() {
           ? `Letter sent. Estimated delivery: ${estimatedDelivery}`
           : 'Letter sent successfully',
       );
+      if (draftId) {
+        await fetch(`/api/letters/${draftId}?userId=${user.id}`, {
+          method: 'DELETE',
+        });
+        setDraftId(null);
+        window.history.replaceState(null, '', '/app/compose');
+      }
       setIsSending(false);
       setLetterData({ recipient: '', subject: '', content: '', stamp: DEFAULT_STAMP_ID, language: 'en' });
       setSelectedRecipient(null);
@@ -132,6 +251,70 @@ export default function ComposePage() {
       toast.error(error instanceof Error ? error.message : 'Failed to send letter');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        toast.error('Please sign in before saving a draft');
+        return;
+      }
+
+      const payload = {
+        senderId: user.id,
+        recipientId: selectedRecipient?.id ?? null,
+        title: letterData.subject || 'Untitled Draft',
+        content: letterData.content || '',
+        status: 'draft',
+        language: letterData.language,
+        stampId: letterData.stamp,
+      };
+
+      const response = await fetch(
+        draftId ? `/api/letters/${draftId}` : '/api/letters',
+        {
+          method: draftId ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            draftId
+              ? {
+                  title: payload.title,
+                  content: payload.content,
+                  status: 'draft',
+                  language: payload.language,
+                  stampId: payload.stampId,
+                  recipientId: payload.recipientId,
+                }
+              : payload,
+          ),
+        },
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          typeof data.error === 'string' ? data.error : 'Failed to save draft',
+        );
+      }
+
+      const savedDraftId = data.letter?.id;
+      if (savedDraftId && !draftId) {
+        setDraftId(savedDraftId);
+        window.history.replaceState(null, '', `/app/compose?draft=${savedDraftId}`);
+      }
+      toast.success('Draft saved');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
@@ -362,10 +545,12 @@ export default function ComposePage() {
 
               <button
                 type="button"
+                onClick={handleSaveDraft}
+                disabled={isSavingDraft || (!letterData.subject && !letterData.content)}
                 className="px-6 py-3 border border-border rounded-sm text-foreground hover:bg-muted font-serif font-bold transition-colors flex items-center gap-2"
               >
                 <Save className="w-5 h-5" />
-                Draft
+                {isSavingDraft ? 'Saving...' : draftId ? 'Update Draft' : 'Draft'}
               </button>
 
               <button

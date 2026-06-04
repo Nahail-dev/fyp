@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Sunrise avatar">
+  <rect width="240" height="240" rx="120" fill="#f7d27b"/>
+  <circle cx="120" cy="118" r="64" fill="#8f5f2e"/>
+  <circle cx="120" cy="104" r="50" fill="#f5c7a9"/>
+  <path d="M62 91c19-43 82-57 119-14 12 14 16 32 14 49-27-33-80-31-133-35z" fill="#3e2b1d"/>
+  <circle cx="101" cy="111" r="6" fill="#2b1f19"/>
+  <circle cx="139" cy="111" r="6" fill="#2b1f19"/>
+  <path d="M97 139c13 13 33 13 46 0" fill="none" stroke="#8e4736" stroke-width="7" stroke-linecap="round"/>
+  <path d="M55 209c14-40 42-60 65-60s51 20 65 60" fill="#9d4edd"/>
+</svg>

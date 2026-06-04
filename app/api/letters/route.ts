@@ -8,6 +8,27 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+async function markDueLettersDelivered(userId?: string | null) {
+  const now = new Date().toISOString();
+  let query = supabase
+    .from('letters')
+    .update({
+      delivered_at: now,
+      status: 'delivered',
+      updated_at: now,
+    })
+    .is('delivered_at', null)
+    .not('estimated_delivery_at', 'is', null)
+    .lte('estimated_delivery_at', now)
+    .neq('status', 'draft');
+
+  if (userId) {
+    query = query.or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
+  }
+
+  return query.select('id, recipient_id, sender_id, title');
+}
+
 // GET - Fetch user's letters
 export async function GET(request: NextRequest) {
   try {
@@ -19,6 +40,11 @@ export async function GET(request: NextRequest) {
         { error: 'Missing userId' },
         { status: 400 }
       );
+    }
+
+    const { error: deliverySyncError } = await markDueLettersDelivered(userId);
+    if (deliverySyncError) {
+      console.log('[api/letters] delivery sync failed:', deliverySyncError);
     }
 
     let query = supabase.from('letters').select('*');
@@ -66,10 +92,21 @@ export async function POST(request: NextRequest) {
       stampId = DEFAULT_STAMP_ID,
     } = await request.json();
 
-    if (!senderId || !title || !content) {
+    const normalizedTitle =
+      typeof title === 'string' && title.trim() ? title.trim() : 'Untitled Draft';
+    const normalizedContent = typeof content === 'string' ? content : '';
+
+    if (!senderId || (status !== 'draft' && (!normalizedTitle || !normalizedContent))) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
+      );
+    }
+
+    if (recipientId && senderId === recipientId) {
+      return NextResponse.json(
+        { error: 'You cannot send a letter to yourself' },
+        { status: 400 },
       );
     }
 
@@ -163,8 +200,8 @@ export async function POST(request: NextRequest) {
       .rpc('send_letter_with_stamp', {
         p_sender_id: senderId,
         p_recipient_id: recipientId || null,
-        p_title: title,
-        p_content: content,
+        p_title: normalizedTitle,
+        p_content: normalizedContent,
         p_status: status,
         p_language: language,
         p_stamp_id: selectedStamp.id,
@@ -200,7 +237,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (status !== 'draft' && recipientId && letter?.id) {
+      const { data: senderProfile } = await supabase
+        .from('users')
+        .select('full_name, username')
+        .eq('id', senderId)
+        .maybeSingle();
+
+      const senderName =
+        senderProfile?.full_name || senderProfile?.username || 'Someone';
+
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: recipientId,
+          type: 'letter_in_transit',
+          title: 'New letter is on its way',
+          message: `${senderName} sent you a letter. It will open when it arrives.`,
+          related_user_id: senderId,
+          related_letter_id: letter.id,
+        });
+
+      if (notificationError) {
+        console.log('[api/letters] notification insert failed:', notificationError);
+      }
+    }
+
     return NextResponse.json({ letter }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { userId, syncDelivered = false } = await request.json();
+
+    if (syncDelivered) {
+      const { data: letters, error } = await markDueLettersDelivered(userId);
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ letters: letters ?? [] }, { status: 200 });
+    }
+
+    return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

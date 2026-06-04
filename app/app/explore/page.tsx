@@ -1,17 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Compass, Heart, User, Mail, Filter } from 'lucide-react';
+import Link from 'next/link';
+import { Compass, User, Mail, Filter, MapPin, PenTool } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 
 interface WriterProfile {
   id: string;
+  username: string;
   full_name: string;
   bio: string;
   interests: string[];
   avatar_url?: string;
-  letters_received_count?: number;
-  stamps_collected_count?: number;
+  city?: {
+    city: string;
+    country: string;
+    admin_name?: string | null;
+  } | null;
 }
 
 export default function ExplorePage() {
@@ -25,7 +30,10 @@ export default function ExplorePage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
-        const response = await fetch(`/api/users${user ? `?userId=${user.id}` : ''}`);
+        const params = new URLSearchParams({ publicOnly: 'true' });
+        if (user) params.set('userId', user.id);
+
+        const response = await fetch(`/api/users?${params.toString()}`);
         const data = await response.json();
         
         if (data.users) {
@@ -105,27 +113,33 @@ export default function ExplorePage() {
         {filteredWriters.map(writer => (
           <div key={writer.id} className="postal-card p-6 hover:shadow-lg transition space-y-4">
             {/* Writer Header */}
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="text-4xl w-10 h-10 flex items-center justify-center rounded-full bg-muted">
+                <div className="text-4xl w-12 h-12 flex items-center justify-center rounded-full bg-muted overflow-hidden">
                   {writer.avatar_url ? (
-                    <img src={writer.avatar_url} alt={writer.full_name} className="w-10 h-10 rounded-full" />
+                    <img src={writer.avatar_url} alt={writer.full_name} className="w-12 h-12 rounded-full object-cover" />
                   ) : (
                     <User className="w-6 h-6 text-muted-foreground" />
                   )}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-serif font-bold text-foreground">{writer.full_name}</h3>
-                  <p className="text-xs text-muted-foreground">{writer.letters_received_count || 0} letters received</p>
+                  <p className="text-xs text-muted-foreground">@{writer.username}</p>
                 </div>
               </div>
-              <button className="p-2 rounded-lg border border-border hover:bg-secondary/10 transition">
-                <Heart className="w-5 h-5 text-secondary" />
-              </button>
             </div>
 
             {/* Bio */}
             <p className="text-sm text-muted-foreground">{writer.bio || 'No bio provided'}</p>
+
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span>
+                {writer.city
+                  ? `${writer.city.city}, ${writer.city.country}`
+                  : 'City not set'}
+              </span>
+            </div>
 
             {/* Interests */}
             <div className="flex flex-wrap gap-2">
@@ -140,17 +154,18 @@ export default function ExplorePage() {
             <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Mail className="w-4 h-4" />
-                <span>{writer.letters_received_count || 0}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span>⭐ {writer.stamps_collected_count || 0} stamps</span>
+                <span>Open to letters</span>
               </div>
             </div>
 
             {/* CTA */}
-            <button className="w-full px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium text-sm">
+            <Link
+              href={`/app/compose?recipient=${encodeURIComponent(writer.username)}`}
+              className="flex w-full items-center justify-center gap-2 px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium text-sm"
+            >
+              <PenTool className="h-4 w-4" />
               Write a Letter
-            </button>
+            </Link>
           </div>
         ))}
       </div>
