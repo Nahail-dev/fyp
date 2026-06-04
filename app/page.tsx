@@ -163,26 +163,29 @@ export default function Home() {
           <div>
             <h4 className="font-serif font-bold mb-4 text-foreground">Product</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground transition">Features</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition">Stamps</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition">Pricing</Link></li>
+              <li><Link href="#features" className="hover:text-foreground transition">Features</Link></li>
+              <li><Link href="/auth/signup" className="hover:text-foreground transition">Stamps</Link></li>
+              <li><Link href="/auth/signup" className="hover:text-foreground transition">Get Started</Link></li>
+              <li><Link href="/auth/login" className="hover:text-foreground transition">Sign In</Link></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-serif font-bold mb-4 text-foreground">Company</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground transition">About</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition">Blog</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition">Contact</Link></li>
+              <li><Link href="/community" className="hover:text-foreground transition">About</Link></li>
+              <li><Link href="/community" className="hover:text-foreground transition">Community</Link></li>
+              <li><Link href="/help" className="hover:text-foreground transition">Contact</Link></li>
+              <li><Link href="/help" className="hover:text-foreground transition">Help & FAQ</Link></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-serif font-bold mb-4 text-foreground">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground transition">Privacy</Link></li>
-              <li><Link href="#" className="hover:text-foreground transition">Terms</Link></li>
+              <li><Link href="/privacy" className="hover:text-foreground transition">Privacy</Link></li>
+              <li><Link href="/terms" className="hover:text-foreground transition">Terms</Link></li>
+              <li><Link href="/updates" className="hover:text-foreground transition">Update Log</Link></li>
             </ul>
           </div>
         </div>

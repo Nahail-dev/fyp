@@ -375,11 +375,11 @@ export default function SignupPage() {
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
           By signing up, you agree to our{" "}
-          <Link href="#" className="hover:text-foreground">
+          <Link href="/terms" className="hover:text-foreground">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="#" className="hover:text-foreground">
+          <Link href="/privacy" className="hover:text-foreground">
             Privacy Policy
           </Link>
         </p>
