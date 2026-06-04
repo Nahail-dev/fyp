@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   Mail,
   MapPin,
   Reply,
+  Trash2,
   Zap,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
@@ -83,11 +84,14 @@ function statusCopy(letter: Letter) {
 
 export default function LetterPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [letter, setLetter] = useState<Letter | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isOpened, setIsOpened] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [, setProgressTick] = useState(0);
   const supabase = createClient();
 
   useEffect(() => {
@@ -124,6 +128,34 @@ export default function LetterPage() {
       fetchLetter();
     }
   }, [params.id]);
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setProgressTick((value) => value + 1);
+    }, 5000);
+
+    return () => window.clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    if (!letter || letter.delivered_at || getLetterDisplayStatus(letter) !== 'delivered') {
+      return;
+    }
+
+    const syncDelivery = async () => {
+      const response = await fetch(`/api/letters/${letter.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync-delivery' }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.letter) {
+        setLetter((current) => (current ? { ...current, ...data.letter } : current));
+      }
+    };
+
+    syncDelivery();
+  }, [letter]);
 
   if (isLoading) {
     return (
@@ -178,6 +210,25 @@ export default function LetterPage() {
   const backHref = isSender ? '/app/sent' : '/app/inbox';
   const backLabel = isSender ? 'Back to Sent' : 'Back to Inbox';
 
+  const deleteLetter = async () => {
+    if (!currentUserId) return;
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/letters/${letter.id}?userId=${currentUserId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to delete letter');
+      }
+      router.push(backHref);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to delete letter');
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="p-8">
       <div className="mb-8 flex items-center gap-4">
@@ -194,6 +245,15 @@ export default function LetterPage() {
           </h1>
           <p className="text-muted-foreground">From {senderName}</p>
         </div>
+        <button
+          type="button"
+          onClick={deleteLetter}
+          disabled={isDeleting}
+          className="ml-auto rounded-sm border border-border p-2 text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
+          title="Delete letter"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="mx-auto w-full max-w-2xl space-y-6">

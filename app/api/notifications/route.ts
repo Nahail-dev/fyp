@@ -77,7 +77,21 @@ export async function POST(request: NextRequest) {
 // PATCH - Mark notification as read
 export async function PATCH(request: NextRequest) {
   try {
-    const { notificationId, isRead = true } = await request.json();
+    const { notificationId, userId, markAll = false, isRead = true } = await request.json();
+
+    if (markAll && userId) {
+      const { data: notifications, error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .select();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ notifications }, { status: 200 });
+    }
 
     if (!notificationId) {
       return NextResponse.json(

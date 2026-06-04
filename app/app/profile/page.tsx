@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabaseClient';
+import { createClient, resetBrowserClient } from '@/lib/supabaseClient';
 import { User, Mail, Pencil, X, Save, LogOut, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { AVATARS } from '@/lib/avatars';
 
 interface UserProfile {
   id: string;
@@ -74,6 +75,7 @@ export default function ProfilePage() {
   const [cityResults, setCityResults] = useState<CityOption[]>([]);
   const [selectedCity, setSelectedCity] = useState<CityOption | null>(null);
   const [isSearchingCities, setIsSearchingCities] = useState(false);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -137,6 +139,7 @@ export default function ProfilePage() {
           bio: data.bio || '',
           interests: Array.isArray(data.interests) ? data.interests.join(', ') : '',
         });
+        setSelectedAvatarUrl(data.avatar_url);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to load profile';
         console.log('[v0] Error fetching profile:', message, error);
@@ -230,6 +233,7 @@ export default function ProfilePage() {
           bio: formData.bio,
           interests: interestsArray,
           city_uuid_id: selectedCity?.uuid_id ?? null,
+          avatar_url: selectedAvatarUrl,
         }),
       });
 
@@ -266,6 +270,7 @@ export default function ProfilePage() {
         return;
       }
       toast.success('Signed out successfully');
+      resetBrowserClient();
       await new Promise((resolve) => setTimeout(resolve, 800));
       router.push('/auth/login');
     } catch (error) {
@@ -425,6 +430,58 @@ export default function ProfilePage() {
                       className="w-full px-4 py-3 rounded-sm border border-border bg-muted text-muted-foreground cursor-not-allowed"
                     />
                     <p className="text-xs text-muted-foreground">Username is set on signup</p>
+                  </div>
+
+                  {/* Avatar */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-foreground">
+                      Profile Avatar
+                    </label>
+                    <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                      {AVATARS.map((avatar) => {
+                        const isSelected = selectedAvatarUrl === avatar.image;
+                        return (
+                          <button
+                            key={avatar.id}
+                            type="button"
+                            onClick={() => setSelectedAvatarUrl(avatar.image)}
+                            className={`rounded-full border-2 p-1 transition hover:scale-105 ${
+                              isSelected
+                                ? 'border-primary bg-primary/10'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                            title={avatar.name}
+                          >
+                            <img
+                              src={avatar.image}
+                              alt={avatar.name}
+                              className="h-16 w-16 rounded-full object-cover"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-3 rounded-sm border border-border bg-muted/30 p-3">
+                      {selectedAvatarUrl ? (
+                        <img
+                          src={selectedAvatarUrl}
+                          alt="Selected avatar"
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                          <User className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          {selectedAvatarUrl ? 'Selected avatar' : 'No avatar selected'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Choose one of the Yuubin avatars for your profile.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* City */}

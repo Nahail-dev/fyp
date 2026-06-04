@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { USERS_PROFILE_SELECT } from '@/lib/usersSchema';
+import { isKnownAvatarUrl } from '@/lib/avatars';
 
 function getBearerToken(request: NextRequest): string | null {
   const auth = request.headers.get('authorization');
@@ -91,6 +92,8 @@ function mapRowToProfile(
     interests: Array.isArray(raw.interests) ? (raw.interests as string[]) : [],
     theme: (raw.theme as string) ?? 'modern',
     city_uuid_id: (raw.city_uuid_id as string | null) ?? null,
+    profile_visibility:
+      raw.profile_visibility === 'private' ? 'private' : 'public',
     is_active: (raw.is_active as boolean) ?? true,
     created_at: (raw.created_at as string) ?? new Date().toISOString(),
     updated_at:
@@ -149,7 +152,22 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { full_name, bio, interests, avatar_url, city_uuid_id } = body;
+    const {
+      full_name,
+      bio,
+      interests,
+      avatar_url,
+      city_uuid_id,
+      profile_visibility,
+      is_active,
+    } = body;
+
+    if (!isKnownAvatarUrl(avatar_url)) {
+      return NextResponse.json(
+        { error: 'Invalid avatar selection' },
+        { status: 400 },
+      );
+    }
 
     console.log('[v0] Updating profile for user:', auth.user.id, body);
 
@@ -163,6 +181,13 @@ export async function PUT(request: NextRequest) {
 
     if (Object.prototype.hasOwnProperty.call(body, 'city_uuid_id')) {
       updatePayload.city_uuid_id = city_uuid_id || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'profile_visibility')) {
+      updatePayload.profile_visibility =
+        profile_visibility === 'private' ? 'private' : 'public';
+    }
+    if (Object.prototype.hasOwnProperty.call(body, 'is_active')) {
+      updatePayload.is_active = Boolean(is_active);
     }
 
     let admin;

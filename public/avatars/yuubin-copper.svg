@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Copper avatar">
+  <rect width="240" height="240" rx="120" fill="#f0b36d"/>
+  <circle cx="120" cy="116" r="66" fill="#7c3f1d"/>
+  <circle cx="120" cy="111" r="51" fill="#9f6847"/>
+  <path d="M70 108c0-43 30-67 66-62 28 4 49 26 53 63-38-19-76-19-119-1z" fill="#2f1d14"/>
+  <circle cx="101" cy="118" r="6" fill="#17110e"/>
+  <circle cx="139" cy="118" r="6" fill="#17110e"/>
+  <path d="M101 143c12 9 26 9 38 0" fill="none" stroke="#5a2b20" stroke-width="7" stroke-linecap="round"/>
+  <path d="M48 212c15-42 45-63 72-63s57 21 72 63" fill="#0f766e"/>
+  <path d="M82 77c12-17 38-25 61-18" fill="none" stroke="#fef08a" stroke-width="8" stroke-linecap="round"/>
+</svg>

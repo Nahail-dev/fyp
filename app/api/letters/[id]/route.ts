@@ -5,6 +5,22 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+async function markLetterDeliveredIfDue(id: string) {
+  const now = new Date().toISOString();
+  await supabase
+    .from('letters')
+    .update({
+      delivered_at: now,
+      status: 'delivered',
+      updated_at: now,
+    })
+    .eq('id', id)
+    .is('delivered_at', null)
+    .not('estimated_delivery_at', 'is', null)
+    .lte('estimated_delivery_at', now)
+    .neq('status', 'draft');
+}
+
 // GET - Fetch single letter
 export async function GET(
   request: NextRequest,
@@ -12,6 +28,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    await markLetterDeliveredIfDue(id);
 
     const { data: letter, error } = await supabase
       .from('letters')
@@ -78,18 +96,45 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { title, content, status, recipientId } = await request.json();
+    const body = await request.json();
+    const {
+      title,
+      content,
+      status,
+      recipientId,
+      language,
+      stampId,
+      isRead,
+      action,
+    } = body;
 
-    const updates: any = {};
-    if (title) updates.title = title;
-    if (content) updates.content = content;
-    if (status) updates.status = status;
-    if (recipientId) updates.recipient_id = recipientId;
+    if (action === 'sync-delivery') {
+      await markLetterDeliveredIfDue(id);
+      const { data: letter, error } = await supabase
+        .from('letters')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
 
-    if (status === 'sent') {
-      updates.sent_at = new Date().toISOString();
-      updates.estimated_delivery = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      if (error || !letter) {
+        return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ letter }, { status: 200 });
     }
+
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof title === 'string') updates.title = title.trim() || 'Untitled Draft';
+    if (typeof content === 'string') updates.content = content;
+    if (typeof status === 'string') updates.status = status;
+    if (Object.prototype.hasOwnProperty.call(body, 'recipientId')) {
+      updates.recipient_id = recipientId || null;
+    }
+    if (typeof language === 'string') updates.language = language;
+    if (typeof stampId === 'string') updates.stamp_id = stampId;
+    if (typeof isRead === 'boolean') updates.is_read = isRead;
 
     const { data: letter, error } = await supabase
       .from('letters')
@@ -115,6 +160,23 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const userId = request.nextUrl.searchParams.get('userId');
+
+    if (userId) {
+      const { data: letter, error: lookupError } = await supabase
+        .from('letters')
+        .select('id, sender_id, recipient_id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (lookupError || !letter) {
+        return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
+      }
+
+      if (letter.sender_id !== userId && letter.recipient_id !== userId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     const { error } = await supabase
       .from('letters')

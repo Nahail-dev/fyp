@@ -178,6 +178,13 @@ export default function HelpPage() {
               <p className="font-serif font-bold text-foreground">Community Guidelines</p>
               <p className="text-sm text-muted-foreground">Our community standards</p>
             </Link>
+            <Link
+              href="/updates"
+              className="postal-card p-6 hover:shadow-lg transition text-center space-y-2"
+            >
+              <p className="font-serif font-bold text-foreground">Update Log</p>
+              <p className="text-sm text-muted-foreground">See what features were added</p>
+            </Link>
           </div>
         </div>
       </section>

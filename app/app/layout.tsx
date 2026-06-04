@@ -3,13 +3,15 @@
 import Link from 'next/link';
 import { Mail, Inbox, PenTool, User, Settings, LogOut, Stamp, Send, FileText, Compass } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabaseClient';
+import { createClient, resetBrowserClient } from '@/lib/supabaseClient';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { ThemeLogo } from '@/components/theme-logo';
+import { NotificationCenter } from '@/components/notification-center';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface UserProfile {
+  id: string;
   full_name: string;
   email: string;
   avatar_url?: string | null;
@@ -33,7 +35,7 @@ export default function AppLayout({
         if (authUser) {
           const { data: profile, error: profileError } = await supabase
             .from('users')
-            .select('full_name, email, avatar_url')
+            .select('id, full_name, email, avatar_url')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -179,6 +181,7 @@ export default function AppLayout({
                 }
                 toast.success('Signed out successfully');
                 setUser(null);
+                resetBrowserClient();
                 await new Promise((resolve) => setTimeout(resolve, 800));
                 router.push('/auth/login');
               } catch (error) {
@@ -209,6 +212,7 @@ export default function AppLayout({
           <div className="flex items-center justify-between">
             <ThemeLogo />
             <div className="flex items-center gap-6">
+              <NotificationCenter userId={user?.id ?? null} />
               <ThemeSwitcher />
               <div className="text-sm text-muted-foreground">
                 {loading ? 'Loading...' : user ? `Welcome back, ${user.full_name}!` : 'Welcome back!'}
