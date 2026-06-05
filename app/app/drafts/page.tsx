@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FileText, Calendar, Edit2, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 
 type DraftLetter = {
   id: string;
@@ -53,8 +54,15 @@ export default function DraftsPage() {
     setDeletingId(draftId);
 
     try {
-      const response = await fetch(`/api/letters/${draftId}?userId=${userId}`, {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch(`/api/letters/${draftId}`, {
         method: 'DELETE',
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
+        credentials: 'include',
       });
       const data = await response.json().catch(() => ({}));
 
@@ -73,19 +81,13 @@ export default function DraftsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center gap-3">
-          <FileText className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-serif font-bold text-foreground">Drafts</h1>
-        </div>
-        <p className="text-muted-foreground">Loading your drafts...</p>
-      </div>
+      <AppScreenLoader title="Drafts" message="Loading your drafts..." />
     );
   }
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <FileText className="w-8 h-8 text-primary" />
           <h1 className="text-3xl font-serif font-bold text-foreground">Drafts</h1>
@@ -93,15 +95,6 @@ export default function DraftsPage() {
         <div className="text-sm text-muted-foreground">
           {drafts.length} drafts
         </div>
-      </div>
-
-      <div className="flex gap-4">
-        <Link
-          href="/app/compose"
-          className="px-6 py-3 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium"
-        >
-          New Letter
-        </Link>
       </div>
 
       <div className="grid gap-4">
@@ -152,12 +145,6 @@ export default function DraftsPage() {
           <FileText className="w-12 h-12 text-muted-foreground mx-auto opacity-50" />
           <p className="text-lg font-serif text-muted-foreground">No drafts yet</p>
           <p className="text-sm text-muted-foreground">Start writing a new letter to save as draft</p>
-          <Link
-            href="/app/compose"
-            className="inline-block px-6 py-2 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium mt-4"
-          >
-            Start Writing
-          </Link>
         </div>
       )}
     </div>

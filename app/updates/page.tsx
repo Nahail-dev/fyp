@@ -5,10 +5,24 @@ import { CalendarDays, CheckCircle2, Rocket } from 'lucide-react';
 
 const updates = [
   {
+    number: 'Update 09',
+    title: 'Polished App Shell, Secure Letters, and Delivery Experience',
+    date: 'June 5, 2026',
+    status: 'Latest',
+    changes: [
+      'Added a mini user chip with avatar, username, dropdown links, and sign out.',
+      'Added active-page highlighting in the sidebar.',
+      'Fixed app shell scrolling so only the right content area scrolls.',
+      'Added a shared postal screen loader across app pages.',
+      'Secured letter detail links and cleaned reset-password tokens from URLs.',
+      'Improved delayed letter arrival notifications and travelling letter UI.',
+    ],
+  },
+  {
     number: 'Update 08',
     title: 'Explore, Settings, and Legal Pages',
     date: 'June 4, 2026',
-    status: 'Latest',
+    status: 'Completed',
     changes: [
       'Added public/private profile visibility.',
       'Built Explore page cards for public profiles.',

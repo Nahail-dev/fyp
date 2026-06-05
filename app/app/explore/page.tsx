@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Compass, User, Mail, Filter, MapPin, PenTool } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 
 interface WriterProfile {
   id: string;
@@ -57,18 +58,12 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="flex items-center gap-3">
-          <Compass className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-serif font-bold text-foreground">Explore Writers</h1>
-        </div>
-        <p className="text-muted-foreground">Loading writers...</p>
-      </div>
+      <AppScreenLoader title="Explore Writers" message="Loading writers..." />
     );
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Compass className="w-8 h-8 text-primary" />

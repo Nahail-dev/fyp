@@ -19,13 +19,33 @@ export default function ResetPasswordPage() {
     const prepareResetSession = async () => {
       try {
         const code = new URLSearchParams(window.location.search).get("code");
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const hashParams = new URLSearchParams(
+          window.location.hash.startsWith("#")
+            ? window.location.hash.slice(1)
+            : window.location.hash,
+        );
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          window.history.replaceState({}, document.title, "/auth/reset-password");
           if (error) {
             toast.error(error.message);
             return;
           }
+        }
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
           window.history.replaceState({}, document.title, "/auth/reset-password");
+          if (error) {
+            toast.error(error.message);
+            return;
+          }
         }
 
         const {

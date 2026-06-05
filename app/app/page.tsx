@@ -4,6 +4,7 @@ import { Mail, Calendar, Heart, Reply } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 
 interface Letter {
   id: string;
@@ -112,13 +113,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-serif font-bold text-foreground">Your Letters</h2>
-          <p className="text-muted-foreground">Connect with thoughtful writers from around the world</p>
-        </div>
-        <p className="text-muted-foreground">Loading your data...</p>
-      </div>
+      <AppScreenLoader title="Your Letters" message="Loading your data..." />
     );
   }
 
@@ -128,7 +123,7 @@ export default function Dashboard() {
   const maxLikes = Math.max(stats.totalLikes, 1);
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Welcome Section */}
       <div className="space-y-2">
         <h2 className="text-3xl font-serif font-bold text-foreground">Your Letters</h2>

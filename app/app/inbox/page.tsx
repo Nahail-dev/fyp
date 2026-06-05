@@ -4,6 +4,7 @@ import { Mail, Calendar, CheckCircle2, Clock, MapPin, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 import {
   formatDeliveryEta,
   getLetterDisplayStatus,
@@ -22,8 +23,8 @@ interface InboxLetter {
   delivered_at?: string | null;
   is_read: boolean;
   sender_profile?: {
-    full_name: string;
-  };
+    username: string | null;
+  } | null;
 }
 
 const getStatusIcon = (status: LetterDisplayStatus) => {
@@ -67,23 +68,7 @@ export default function InboxPage() {
         const data = await response.json();
         
         if (data.letters) {
-          // Fetch sender profiles for each letter
-          const lettersWithProfiles = await Promise.all(
-            data.letters.map(async (letter: InboxLetter) => {
-              const profileResponse = await supabase
-                .from('users')
-                .select('full_name')
-                .eq('id', letter.sender_id)
-                .maybeSingle();
-              
-              return {
-                ...letter,
-                sender_profile: profileResponse.data
-              };
-            })
-          );
-          
-          setLetters(lettersWithProfiles);
+          setLetters(data.letters);
         }
       } catch (error) {
         console.log('[v0] Error fetching inbox:', error);
@@ -139,18 +124,12 @@ export default function InboxPage() {
   });
   if (loading) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-serif font-bold text-foreground">Inbox</h2>
-          <p className="text-muted-foreground">Track your incoming letters and delivery status</p>
-        </div>
-        <p className="text-muted-foreground">Loading your inbox...</p>
-      </div>
+      <AppScreenLoader title="Inbox" message="Loading your inbox..." />
     );
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
         <h2 className="text-3xl font-serif font-bold text-foreground">Inbox</h2>
@@ -206,7 +185,9 @@ export default function InboxPage() {
                       <h3 className={`font-serif text-lg ${!letter.is_read ? 'font-bold text-foreground' : 'text-foreground'}`}>
                         {letter.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground">From {letter.sender_profile?.full_name || 'Unknown'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        From {letter.sender_profile?.username || 'Unknown'}
+                      </p>
                     </div>
                     
                     {!letter.is_read && (

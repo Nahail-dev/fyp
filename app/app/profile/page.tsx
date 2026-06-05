@@ -6,6 +6,7 @@ import { User, Mail, Pencil, X, Save, LogOut, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AVATARS } from '@/lib/avatars';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 
 interface UserProfile {
   id: string;
@@ -281,27 +282,13 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[calc(100vh-96px)] p-8 flex items-center justify-center">
-        <div className="postal-card w-full max-w-sm p-8 flex flex-col items-center text-center gap-5">
-          <div className="relative h-20 w-20">
-            <div className="absolute inset-0 rounded-full border-4 border-muted" />
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-accent animate-spin" />
-            <div className="absolute inset-3 rounded-full bg-primary/10 border border-primary/25 flex items-center justify-center">
-              <Mail className="h-7 w-7 text-primary" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-serif font-bold text-foreground">Profile</h1>
-            <p className="text-sm text-muted-foreground">Loading your profile...</p>
-          </div>
-        </div>
-      </div>
+      <AppScreenLoader title="Profile" message="Loading your profile..." />
     );
   }
 
   if (!profile) {
     return (
-      <div className="p-8 space-y-4">
+      <div className="space-y-4">
         <h1 className="text-3xl font-serif font-bold text-foreground">Profile</h1>
         <p className="text-muted-foreground">Failed to load profile</p>
       </div>
@@ -309,7 +296,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
