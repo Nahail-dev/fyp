@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Check, Mail, X } from 'lucide-react';
+import { Bell, Check, CheckCircle2, Mail, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 type AppNotification = {
@@ -25,6 +25,16 @@ function timeAgo(dateString: string) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+function notificationIcon(type: string) {
+  if (type === 'letter_delivered') {
+    return <CheckCircle2 className="h-4 w-4" />;
+  }
+  if (type === 'letter_in_transit') {
+    return <Zap className="h-4 w-4" />;
+  }
+  return <Mail className="h-4 w-4" />;
 }
 
 export function NotificationCenter({ userId }: { userId: string | null }) {
@@ -64,10 +74,16 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
           });
 
           if (permission === 'granted') {
-            new Notification(notification.title, {
+            const browserNotification = new Notification(notification.title, {
               body: notification.message || undefined,
               icon: '/logos/favicon/favicon-32x32.png',
             });
+            browserNotification.onclick = () => {
+              window.focus();
+              if (notification.related_letter_id) {
+                router.push(`/app/letter/${notification.related_letter_id}`);
+              }
+            };
           }
         });
       }
@@ -76,11 +92,11 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
     } catch (error) {
       console.log('[notifications] fetch failed:', error);
     }
-  }, [permission, userId]);
+  }, [permission, router, userId]);
 
   useEffect(() => {
     fetchNotifications();
-    const interval = window.setInterval(fetchNotifications, 30000);
+    const interval = window.setInterval(fetchNotifications, 15000);
     return () => window.clearInterval(interval);
   }, [fetchNotifications]);
 
@@ -207,7 +223,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
                   }`}
                 >
                   <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Mail className="h-4 w-4" />
+                    {notificationIcon(notification.type)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">

@@ -6,17 +6,15 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   ArrowLeft,
-  CheckCircle2,
-  Clock,
   Flag,
   Lock,
   Mail,
   MapPin,
   Reply,
   Trash2,
-  Zap,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 import { getStampById } from '@/lib/stamps';
 import {
   formatDeliveryEta,
@@ -57,31 +55,6 @@ interface Letter {
   recipient_city?: LetterCity | null;
 }
 
-function statusCopy(letter: Letter) {
-  const status = getLetterDisplayStatus(letter);
-  if (status === 'delivered') {
-    return {
-      icon: <CheckCircle2 className="h-5 w-5 text-accent" />,
-      label: 'Delivered',
-      body: 'This letter has arrived and can be opened.',
-    };
-  }
-  if (status === 'in-transit') {
-    return {
-      icon: <Zap className="h-5 w-5 text-status-transit animate-delivery-pulse" />,
-      label: 'In Transit',
-      body: `This letter is still travelling. Estimated arrival: ${formatDeliveryEta(
-        letter.estimated_delivery_at,
-      )}.`,
-    };
-  }
-  return {
-    icon: <Clock className="h-5 w-5 text-status-pending" />,
-    label: 'Pending',
-    body: 'This letter has not started delivery yet.',
-  };
-}
-
 export default function LetterPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -102,14 +75,18 @@ export default function LetterPage() {
           {
             data: { user },
           },
-          response,
-        ] = await Promise.all([
-          supabase.auth.getUser(),
-          fetch(`/api/letters/${params.id}`),
-        ]);
-        const data = await response.json().catch(() => ({}));
+          {
+            data: { session },
+          },
+        ] = await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()]);
+        const token = session?.access_token;
+        const letterResponse = await fetch(`/api/letters/${params.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          credentials: 'include',
+        });
+        const data = await letterResponse.json().catch(() => ({}));
 
-        if (!response.ok) {
+        if (!letterResponse.ok) {
           throw new Error(
             typeof data.error === 'string' ? data.error : 'Failed to load letter',
           );
@@ -143,9 +120,18 @@ export default function LetterPage() {
     }
 
     const syncDelivery = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const response = await fetch(`/api/letters/${letter.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : {}),
+        },
+        credentials: 'include',
         body: JSON.stringify({ action: 'sync-delivery' }),
       });
       const data = await response.json().catch(() => ({}));
@@ -159,18 +145,13 @@ export default function LetterPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
-        <div className="postal-card mx-auto flex max-w-md flex-col items-center gap-4 p-8 text-center">
-          <div className="h-12 w-12 rounded-full border-4 border-muted border-t-primary animate-spin" />
-          <p className="text-muted-foreground">Loading letter...</p>
-        </div>
-      </div>
+      <AppScreenLoader title="Letter" message="Loading letter..." />
     );
   }
 
   if (error || !letter) {
     return (
-      <div className="p-8 space-y-6">
+      <div className="space-y-6">
         <Link
           href="/app/inbox"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
@@ -203,7 +184,6 @@ export default function LetterPage() {
   const font = isUrdu
     ? "[font-family:'Noto_Nastaliq_Urdu','Noto_Naskh_Arabic','Arial',sans-serif]"
     : 'font-serif';
-  const copy = statusCopy(letter);
   const stamp = getStampById(letter.stamp_id);
   const isSender = currentUserId === letter.sender?.id;
   const canOpenLetter = deliveryStatus === 'delivered' || isSender;
@@ -215,8 +195,15 @@ export default function LetterPage() {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/letters/${letter.id}?userId=${currentUserId}`, {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch(`/api/letters/${letter.id}`, {
         method: 'DELETE',
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
+        credentials: 'include',
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -230,7 +217,7 @@ export default function LetterPage() {
   };
 
   return (
-    <div className="p-8">
+    <div>
       <div className="mb-8 flex items-center gap-4">
         <Link
           href={backHref}
@@ -257,82 +244,55 @@ export default function LetterPage() {
       </div>
 
       <div className="mx-auto w-full max-w-2xl space-y-6">
-        <div className="postal-card p-6 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              {copy.icon}
-              <div>
-                <p className="font-serif font-bold text-foreground">{copy.label}</p>
-                <p className="text-sm text-muted-foreground">{copy.body}</p>
+        {!canOpenLetter ? (
+          <div className="postal-card overflow-hidden p-8 text-center">
+            <div className="relative mx-auto mb-8 h-56 max-w-xl rounded-sm border border-border bg-muted/20 px-6 py-8">
+              <div className="absolute left-8 right-8 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border" />
+              <div
+                className="absolute left-8 top-1/2 h-1 -translate-y-1/2 rounded-full bg-status-transit transition-all"
+                style={{ width: `calc((100% - 4rem) * ${progress / 100})` }}
+              />
+              <div className="absolute left-7 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-card text-primary shadow-sm">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">Sent</span>
+              </div>
+              <div className="absolute right-7 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-accent/40 bg-card text-accent shadow-sm">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">Arrival</span>
+              </div>
+              <div
+                className="yuubin-transit-envelope absolute top-1/2 z-20 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-sm border border-primary/40 bg-card text-primary shadow-lg"
+                style={{
+                  left: `clamp(2.25rem, calc(2rem + (100% - 4rem) * ${
+                    progress / 100
+                  }), calc(100% - 5.75rem))`,
+                }}
+              >
+                <Mail className="h-7 w-7" />
+              </div>
+              <div className="absolute inset-x-6 bottom-5 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{progress}% travelled</span>
+                <span>Arrives {formatDeliveryEta(letter.estimated_delivery_at)}</span>
               </div>
             </div>
-            <p className="text-sm font-bold text-foreground">{progress}%</p>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className={`h-2 rounded-full transition-all ${
-                deliveryStatus === 'delivered'
-                  ? 'bg-accent'
-                  : deliveryStatus === 'in-transit'
-                  ? 'bg-status-transit'
-                  : 'bg-status-pending'
-              }`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="relative pt-4">
-            <div className="absolute left-4 right-4 top-7 h-0.5 bg-border" />
-            <div
-              className={`absolute left-4 top-7 h-0.5 transition-all ${
-                deliveryStatus === 'delivered' ? 'bg-accent' : 'bg-status-transit'
-              }`}
-              style={{ width: `calc((100% - 2rem) * ${progress / 100})` }}
-            />
-            <div className="relative grid grid-cols-3 text-center text-xs">
-              {[
-                { label: 'Sent', active: progress >= 1, icon: Mail },
-                { label: 'Transit', active: progress > 1 && progress < 100, icon: Zap },
-                { label: 'Arrived', active: progress === 100, icon: MapPin },
-              ].map(({ label, active, icon: Icon }) => (
-                <div key={label} className="flex flex-col items-center gap-2">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border bg-card ${
-                      active
-                        ? 'border-primary text-primary shadow-sm'
-                        : 'border-border text-muted-foreground'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <span className={active ? 'text-foreground' : 'text-muted-foreground'}>
-                    {label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="grid gap-3 text-xs text-muted-foreground sm:grid-cols-2">
-            <p>
-              <strong>Sent:</strong> {formatDeliveryEta(sentDate)}
-            </p>
-            <p>
-              <strong>Estimated:</strong>{' '}
-              {formatDeliveryEta(letter.estimated_delivery_at)}
-            </p>
-          </div>
-        </div>
 
-        {!canOpenLetter ? (
-          <div className="postal-card p-12 text-center space-y-5">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 border border-primary/25">
-              <Lock className="h-9 w-9 text-primary" />
-            </div>
-            <div className="space-y-2">
+            <div className="mx-auto max-w-lg space-y-3">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
+                <Lock className="h-7 w-7 text-primary" />
+              </div>
               <h2 className="text-2xl font-serif font-bold text-foreground">
-                Letter Still Travelling
+                Your Letter Is On Its Way
               </h2>
               <p className="text-muted-foreground">
-                Yuubin keeps delayed letters sealed until their delivery time.
+                It is travelling from {senderLocation}. The seal opens automatically when
+                delivery reaches 100%.
+              </p>
+              <p className="text-sm font-medium text-primary">
+                Estimated opening time: {formatDeliveryEta(letter.estimated_delivery_at)}
               </p>
             </div>
           </div>

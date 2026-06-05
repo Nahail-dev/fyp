@@ -59,16 +59,25 @@ export default function ComposePage() {
       if (!draftParam) return;
 
       try {
-        const response = await fetch(`/api/letters/${draftParam}`);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        const response = await fetch(`/api/letters/${draftParam}`, {
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+          credentials: 'include',
+        });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
           throw new Error(typeof data.error === 'string' ? data.error : 'Draft not found');
         }
 
         const draft = data.letter;
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
 
         if (!user || draft.sender_id !== user.id || draft.status !== 'draft') {
           throw new Error('Draft not available');
@@ -238,8 +247,15 @@ export default function ComposePage() {
           : 'Letter sent successfully',
       );
       if (draftId) {
-        await fetch(`/api/letters/${draftId}?userId=${user.id}`, {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        await fetch(`/api/letters/${draftId}`, {
           method: 'DELETE',
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined,
+          credentials: 'include',
         });
         setDraftId(null);
         window.history.replaceState(null, '', '/app/compose');
@@ -268,6 +284,10 @@ export default function ComposePage() {
         return;
       }
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const payload = {
         senderId: user.id,
         recipientId: selectedRecipient?.id ?? null,
@@ -282,7 +302,13 @@ export default function ComposePage() {
         draftId ? `/api/letters/${draftId}` : '/api/letters',
         {
           method: draftId ? 'PATCH' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token
+              ? { Authorization: `Bearer ${session.access_token}` }
+              : {}),
+          },
+          credentials: 'include',
           body: JSON.stringify(
             draftId
               ? {
@@ -346,7 +372,7 @@ export default function ComposePage() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
         <h2 className="text-3xl font-serif font-bold text-foreground">Write a Letter</h2>

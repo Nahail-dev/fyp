@@ -5,9 +5,52 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+function getBearerToken(request: NextRequest): string | null {
+  const auth = request.headers.get('authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.slice(7).trim() || null;
+}
+
+async function getVerifiedAuthUser(request: NextRequest) {
+  const bearer = getBearerToken(request);
+  if (!bearer) {
+    return { error: 'Unauthorized' as const, status: 401 };
+  }
+
+  const authClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: { headers: { Authorization: `Bearer ${bearer}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    },
+  );
+
+  const {
+    data: { user },
+    error,
+  } = await authClient.auth.getUser(bearer);
+
+  if (error || !user) {
+    return { error: 'Unauthorized' as const, status: 401 };
+  }
+
+  return { user };
+}
+
+function hasLetterArrived(letter: {
+  status?: string | null;
+  delivered_at?: string | null;
+  estimated_delivery_at?: string | null;
+}) {
+  if (letter.status === 'delivered' || letter.delivered_at) return true;
+  if (!letter.estimated_delivery_at) return false;
+  return new Date(letter.estimated_delivery_at).getTime() <= Date.now();
+}
+
 async function markLetterDeliveredIfDue(id: string) {
   const now = new Date().toISOString();
-  await supabase
+  const { data: letters } = await supabase
     .from('letters')
     .update({
       delivered_at: now,
@@ -18,7 +61,33 @@ async function markLetterDeliveredIfDue(id: string) {
     .is('delivered_at', null)
     .not('estimated_delivery_at', 'is', null)
     .lte('estimated_delivery_at', now)
-    .neq('status', 'draft');
+    .neq('status', 'draft')
+    .select('id, recipient_id, sender_id, title');
+
+  const deliveredLetter = letters?.[0];
+  if (!deliveredLetter?.recipient_id) return;
+
+  const { data: existingNotification } = await supabase
+    .from('notifications')
+    .select('id')
+    .eq('type', 'letter_delivered')
+    .eq('related_letter_id', deliveredLetter.id)
+    .maybeSingle();
+
+  if (existingNotification) return;
+
+  const { error } = await supabase.from('notifications').insert({
+    user_id: deliveredLetter.recipient_id,
+    type: 'letter_delivered',
+    title: 'Your letter has arrived',
+    message: `"${deliveredLetter.title || 'Untitled letter'}" is now ready to open.`,
+    related_user_id: deliveredLetter.sender_id,
+    related_letter_id: deliveredLetter.id,
+  });
+
+  if (error) {
+    console.log('[api/letters/id] delivered notification insert failed:', error);
+  }
 }
 
 // GET - Fetch single letter
@@ -28,6 +97,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     await markLetterDeliveredIfDue(id);
 
@@ -39,6 +112,13 @@ export async function GET(
 
     if (error || !letter) {
       return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
+    }
+
+    const isSender = letter.sender_id === auth.user.id;
+    const isRecipient = letter.recipient_id === auth.user.id;
+
+    if (!isSender && !isRecipient) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const userIds = [letter.sender_id, letter.recipient_id].filter(Boolean);
@@ -76,6 +156,7 @@ export async function GET(
       {
         letter: {
           ...letter,
+          content: isSender || hasLetterArrived(letter) ? letter.content : '',
           sender,
           recipient,
           sender_city,
@@ -96,6 +177,28 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const { data: existingLetter, error: lookupError } = await supabase
+      .from('letters')
+      .select('id, sender_id, recipient_id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (lookupError || !existingLetter) {
+      return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
+    }
+
+    if (
+      existingLetter.sender_id !== auth.user.id &&
+      existingLetter.recipient_id !== auth.user.id
+    ) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const {
       title,
@@ -121,6 +224,10 @@ export async function PATCH(
       }
 
       return NextResponse.json({ letter }, { status: 200 });
+    }
+
+    if (existingLetter.sender_id !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const updates: Record<string, unknown> = {
@@ -160,22 +267,23 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const userId = request.nextUrl.searchParams.get('userId');
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
-    if (userId) {
-      const { data: letter, error: lookupError } = await supabase
-        .from('letters')
-        .select('id, sender_id, recipient_id')
-        .eq('id', id)
-        .maybeSingle();
+    const { data: letter, error: lookupError } = await supabase
+      .from('letters')
+      .select('id, sender_id, recipient_id')
+      .eq('id', id)
+      .maybeSingle();
 
-      if (lookupError || !letter) {
-        return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
-      }
+    if (lookupError || !letter) {
+      return NextResponse.json({ error: 'Letter not found' }, { status: 404 });
+    }
 
-      if (letter.sender_id !== userId && letter.recipient_id !== userId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
+    if (letter.sender_id !== auth.user.id && letter.recipient_id !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { error } = await supabase

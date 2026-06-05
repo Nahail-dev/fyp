@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Award, Lock, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { STAMPS, type StampRarity } from '@/lib/stamps';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 
 interface Stamp {
   id: string;
@@ -88,12 +89,7 @@ export default function StampsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-serif font-bold text-foreground">Stamp Collection</h2>
-          <p className="text-muted-foreground">Loading your collection...</p>
-        </div>
-      </div>
+      <AppScreenLoader title="Stamp Collection" message="Loading your collection..." />
     );
   }
 
@@ -101,7 +97,7 @@ export default function StampsPage() {
   const totalStamps = stamps.length;
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
         <h2 className="text-3xl font-serif font-bold text-foreground">Stamp Collection</h2>

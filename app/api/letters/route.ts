@@ -29,6 +29,96 @@ async function markDueLettersDelivered(userId?: string | null) {
   return query.select('id, recipient_id, sender_id, title');
 }
 
+async function notifyDeliveredLetters(
+  letters: Array<{
+    id: string;
+    recipient_id: string | null;
+    sender_id: string | null;
+    title: string | null;
+  }> | null,
+) {
+  const deliveredLetters =
+    letters?.filter((letter) => letter.recipient_id && letter.id) ?? [];
+
+  if (!deliveredLetters.length) return;
+
+  const letterIds = deliveredLetters.map((letter) => letter.id);
+  const { data: existingNotifications } = await supabase
+    .from('notifications')
+    .select('related_letter_id')
+    .eq('type', 'letter_delivered')
+    .in('related_letter_id', letterIds);
+
+  const notifiedLetterIds = new Set(
+    existingNotifications?.map((notification) => notification.related_letter_id) ?? [],
+  );
+
+  const notifications = deliveredLetters
+    .filter((letter) => !notifiedLetterIds.has(letter.id))
+    .map((letter) => ({
+      user_id: letter.recipient_id,
+      type: 'letter_delivered',
+      title: 'Your letter has arrived',
+      message: `"${letter.title || 'Untitled letter'}" is now ready to open.`,
+      related_user_id: letter.sender_id,
+      related_letter_id: letter.id,
+    }));
+
+  if (!notifications.length) return;
+
+  const { error } = await supabase.from('notifications').insert(notifications);
+  if (error) {
+    console.log('[api/letters] delivered notification insert failed:', error);
+  }
+}
+
+type LetterRow = {
+  sender_id?: string | null;
+  recipient_id?: string | null;
+  [key: string]: unknown;
+};
+
+type UserProfile = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
+async function attachLetterProfiles(letters: LetterRow[] | null) {
+  if (!letters?.length) return letters;
+
+  const userIds = Array.from(
+    new Set(
+      letters
+        .flatMap((letter) => [letter.sender_id, letter.recipient_id])
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+
+  if (!userIds.length) return letters;
+
+  const { data: profiles, error } = await supabase
+    .from('users')
+    .select('id, username, full_name, avatar_url')
+    .in('id', userIds);
+
+  if (error) {
+    console.log('[api/letters] profile lookup failed:', error);
+    return letters;
+  }
+
+  const profileById = new Map(
+    (profiles as UserProfile[] | null)?.map((profile) => [profile.id, profile]) ?? [],
+  );
+
+  return letters.map((letter) => ({
+    ...letter,
+    sender_profile: letter.sender_id ? profileById.get(letter.sender_id) ?? null : null,
+    recipient_profile: letter.recipient_id ? profileById.get(letter.recipient_id) ?? null : null,
+  }));
+}
+
 // GET - Fetch user's letters
 export async function GET(request: NextRequest) {
   try {
@@ -42,9 +132,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { error: deliverySyncError } = await markDueLettersDelivered(userId);
+    const {
+      data: deliveredLetters,
+      error: deliverySyncError,
+    } = await markDueLettersDelivered(userId);
     if (deliverySyncError) {
       console.log('[api/letters] delivery sync failed:', deliverySyncError);
+    } else {
+      await notifyDeliveredLetters(deliveredLetters);
     }
 
     let query = supabase.from('letters').select('*');
@@ -73,7 +168,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ letters }, { status: 200 });
+    const lettersWithProfiles = await attachLetterProfiles(letters);
+
+    return NextResponse.json({ letters: lettersWithProfiles }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -278,6 +375,7 @@ export async function PATCH(request: NextRequest) {
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+      await notifyDeliveredLetters(letters);
       return NextResponse.json({ letters: letters ?? [] }, { status: 200 });
     }
 

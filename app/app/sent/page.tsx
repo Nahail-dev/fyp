@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Send, Calendar, User, Eye, Trash2, Zap, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 import {
   formatDeliveryEta,
   getLetterDisplayStatus,
@@ -22,8 +23,8 @@ interface SentLetter {
   estimated_delivery_at?: string | null;
   delivered_at?: string | null;
   recipient_profile?: {
-    full_name: string;
-  };
+    username: string | null;
+  } | null;
 }
 
 export default function SentLettersPage() {
@@ -46,25 +47,7 @@ export default function SentLettersPage() {
         const data = await response.json();
         
         if (data.letters) {
-          const lettersWithProfiles = await Promise.all(
-            data.letters.map(async (letter: SentLetter) => {
-              if (letter.recipient_id) {
-                const profileResponse = await supabase
-                  .from('users')
-                  .select('full_name')
-                  .eq('id', letter.recipient_id)
-                  .maybeSingle();
-                
-                return {
-                  ...letter,
-                  recipient_profile: profileResponse.data
-                };
-              }
-              return letter;
-            })
-          );
-          
-          setLetters(lettersWithProfiles);
+          setLetters(data.letters);
         }
       } catch (error) {
         console.log('[v0] Error fetching sent letters:', error);
@@ -122,8 +105,15 @@ export default function SentLettersPage() {
     setDeletingId(letterId);
 
     try {
-      const response = await fetch(`/api/letters/${letterId}?userId=${currentUserId}`, {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch(`/api/letters/${letterId}`, {
         method: 'DELETE',
+        headers: session?.access_token
+          ? { Authorization: `Bearer ${session.access_token}` }
+          : undefined,
+        credentials: 'include',
       });
       const data = await response.json().catch(() => ({}));
 
@@ -158,18 +148,12 @@ export default function SentLettersPage() {
 
   if (loading) {
     return (
-      <div className="p-8 space-y-8">
-        <div className="flex items-center gap-3">
-          <Send className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-serif font-bold text-foreground">Sent Letters</h1>
-        </div>
-        <p className="text-muted-foreground">Loading your sent letters...</p>
-      </div>
+      <AppScreenLoader title="Sent Letters" message="Loading your sent letters..." />
     );
   }
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -220,7 +204,9 @@ export default function SentLettersPage() {
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
-                    <p className="font-medium text-foreground">{letter.recipient_profile?.full_name || 'Unknown Recipient'}</p>
+                    <p className="font-medium text-foreground">
+                      {letter.recipient_profile?.username || 'Unknown Recipient'}
+                    </p>
                     <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${getStatusColor(displayStatus)}`}>
                       {displayStatus === 'delivered' ? (
                         <>
