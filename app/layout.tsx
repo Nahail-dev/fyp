@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-context'
+import { AccessibilityProvider } from '@/components/accessibility-context'
 import { PostalBgDecoration } from '@/components/postal-bg-decoration'
 import { CookieConsent } from '@/components/cookie-consent'
 import './globals.css'
@@ -39,9 +40,32 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-background text-foreground">
         <PostalBgDecoration />
         <ThemeProvider>
-          {children}
-          <CookieConsent />
-          <Toaster richColors position="top-right" />
+          <AccessibilityProvider>
+            {children}
+            <CookieConsent />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                classNames: {
+                  toast:
+                    'yuubin-toast border border-border bg-card text-foreground shadow-xl font-sans',
+                  title: 'yuubin-toast-title font-serif',
+                  description: 'yuubin-toast-description text-muted-foreground',
+                  icon: 'yuubin-toast-icon',
+                  actionButton:
+                    'bg-primary text-primary-foreground border border-primary',
+                  cancelButton:
+                    'bg-muted text-muted-foreground border border-border',
+                  closeButton:
+                    'bg-card text-foreground border border-border hover:bg-muted',
+                  success: 'yuubin-toast-success',
+                  error: 'yuubin-toast-error',
+                  warning: 'yuubin-toast-warning',
+                  info: 'yuubin-toast-info',
+                },
+              }}
+            />
+          </AccessibilityProvider>
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>

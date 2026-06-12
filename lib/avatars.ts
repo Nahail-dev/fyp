@@ -11,6 +11,12 @@ export const AVATARS: AvatarDefinition[] = [
   { id: 'rose', name: 'Rose Poet', image: '/avatars/yuubin-rose.svg' },
   { id: 'copper', name: 'Copper Penpal', image: '/avatars/yuubin-copper.svg' },
   { id: 'sky', name: 'Sky Messenger', image: '/avatars/yuubin-sky.svg' },
+  { id: 'moon', name: 'Moon Scribe', image: '/avatars/yuubin-moon.svg' },
+  { id: 'emerald', name: 'Emerald Postkeeper', image: '/avatars/yuubin-emerald.svg' },
+  { id: 'amber', name: 'Amber Archivist', image: '/avatars/yuubin-amber.svg' },
+  { id: 'violet', name: 'Violet Dreamer', image: '/avatars/yuubin-violet.svg' },
+  { id: 'teal', name: 'Teal Traveller', image: '/avatars/yuubin-teal.svg' },
+  { id: 'maroon', name: 'Maroon Memoirist', image: '/avatars/yuubin-maroon.svg' },
 ];
 
 export function isKnownAvatarUrl(avatarUrl?: string | null) {

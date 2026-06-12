@@ -107,8 +107,8 @@ export default function PrivacyPage() {
             <Link href="/terms" className="text-primary hover:underline">
               Terms of Service
             </Link>
-            <Link href="/updates" className="text-primary hover:underline">
-              Update Log
+            <Link href="/release-notes" className="text-primary hover:underline">
+              Release Notes
             </Link>
           </div>
         </div>

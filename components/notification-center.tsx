@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, CheckCircle2, Mail, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabaseClient';
 
 type AppNotification = {
   id: string;
@@ -48,6 +49,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
   const hasLoadedOnceRef = useRef(false);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const router = useRouter();
+  const supabase = createClient();
 
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
@@ -99,6 +101,30 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
     const interval = window.setInterval(fetchNotifications, 15000);
     return () => window.clearInterval(interval);
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          void fetchNotifications();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications, userId]);
 
   const requestBrowserPermission = async () => {
     if (!('Notification' in window)) {

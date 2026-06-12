@@ -1,6 +1,6 @@
 'use client';
 
-import { Mail, Calendar, CheckCircle2, Clock, MapPin, Zap } from 'lucide-react';
+import { Mail, Calendar, CheckCircle2, Clock, MapPin, Search, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
@@ -53,9 +53,19 @@ export default function InboxPage() {
   const [letters, setLetters] = useState<InboxLetter[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [, setProgressTick] = useState(0);
   const supabase = createClient();
+
+  const loadInboxLetters = async (userId: string) => {
+    const response = await fetch(`/api/letters?userId=${userId}&type=inbox`);
+    const data = await response.json();
+
+    if (data.letters) {
+      setLetters(data.letters);
+    }
+  };
 
   useEffect(() => {
     const fetchLetters = async () => {
@@ -63,13 +73,7 @@ export default function InboxPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         setCurrentUserId(user.id);
-
-        const response = await fetch(`/api/letters?userId=${user.id}&type=inbox`);
-        const data = await response.json();
-        
-        if (data.letters) {
-          setLetters(data.letters);
-        }
+        await loadInboxLetters(user.id);
       } catch (error) {
         console.log('[v0] Error fetching inbox:', error);
       } finally {
@@ -79,6 +83,32 @@ export default function InboxPage() {
 
     fetchLetters();
   }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const refreshInbox = () => {
+      void loadInboxLetters(currentUserId);
+    };
+
+    const channel = supabase
+      .channel(`inbox-letters-${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'letters',
+          filter: `recipient_id=eq.${currentUserId}`,
+        },
+        refreshInbox,
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
 
   useEffect(() => {
     const tick = window.setInterval(() => {
@@ -118,9 +148,15 @@ export default function InboxPage() {
 
   const filteredLetters = letters.filter(letter => {
     const displayStatus = getLetterDisplayStatus(letter);
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !letter.is_read;
-    return displayStatus === filter;
+    const matchesFilter =
+      filter === 'all' ||
+      (filter === 'unread' ? !letter.is_read : displayStatus === filter);
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      letter.title.toLowerCase().includes(query) ||
+      (letter.sender_profile?.username || '').toLowerCase().includes(query);
+    return matchesFilter && matchesSearch;
   });
   if (loading) {
     return (
@@ -136,21 +172,33 @@ export default function InboxPage() {
         <p className="text-muted-foreground">Track your incoming letters and delivery status</p>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        {['all', 'delivered', 'in-transit', 'pending', 'unread'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-sm font-medium text-sm transition-colors ${
-              filter === f
-                ? 'bg-primary text-primary-foreground'
-                : 'border border-border text-foreground hover:bg-muted'
-            }`}
-          >
-            {f === 'all' ? 'All Letters' : f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+      {/* Search and Filters */}
+      <div className="postal-card p-4 space-y-4">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search inbox by title or sender username"
+            className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {['all', 'delivered', 'in-transit', 'pending', 'unread'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-sm font-medium text-sm transition-colors ${
+                filter === f
+                  ? 'bg-primary text-primary-foreground'
+                  : 'border border-border text-foreground hover:bg-muted'
+              }`}
+            >
+              {f === 'all' ? 'All Letters' : f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Letters List */}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Compass, User, Mail, Filter, MapPin, PenTool } from 'lucide-react';
+import { Compass, User, Mail, Filter, MapPin, PenTool, UserCheck, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { AppScreenLoader } from '@/components/app-screen-loader';
 
@@ -13,6 +13,9 @@ interface WriterProfile {
   bio: string;
   interests: string[];
   avatar_url?: string;
+  is_following?: boolean;
+  follower_count?: number;
+  following_count?: number;
   city?: {
     city: string;
     country: string;
@@ -24,6 +27,7 @@ export default function ExplorePage() {
   const [writers, setWriters] = useState<WriterProfile[]>([]);
   const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [busyFollowId, setBusyFollowId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -55,6 +59,45 @@ export default function ExplorePage() {
   const filteredWriters = selectedInterest
     ? writers.filter(writer => writer.interests?.includes(selectedInterest))
     : writers;
+
+  const toggleFollow = async (writerId: string) => {
+    setBusyFollowId(writerId);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const response = await fetch('/api/follows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ targetUserId: writerId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return;
+
+      setWriters((current) =>
+        current.map((writer) =>
+          writer.id === writerId
+            ? {
+                ...writer,
+                is_following: Boolean(data.following),
+                follower_count: Math.max(
+                  0,
+                  (writer.follower_count ?? 0) + (data.following ? 1 : -1),
+                ),
+              }
+            : writer,
+        ),
+      );
+    } finally {
+      setBusyFollowId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -151,16 +194,38 @@ export default function ExplorePage() {
                 <Mail className="w-4 h-4" />
                 <span>Open to letters</span>
               </div>
+              <div>
+                {writer.follower_count ?? 0} followers
+              </div>
             </div>
 
             {/* CTA */}
-            <Link
-              href={`/app/compose?recipient=${encodeURIComponent(writer.username)}`}
-              className="flex w-full items-center justify-center gap-2 px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium text-sm"
-            >
-              <PenTool className="h-4 w-4" />
-              Write a Letter
-            </Link>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => toggleFollow(writer.id)}
+                disabled={busyFollowId === writer.id}
+                className={`flex items-center justify-center gap-2 rounded-sm border px-4 py-2 text-sm font-medium transition disabled:opacity-60 ${
+                  writer.is_following
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-foreground hover:bg-muted'
+                }`}
+              >
+                {writer.is_following ? (
+                  <UserCheck className="h-4 w-4" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
+                {writer.is_following ? 'Following' : 'Follow'}
+              </button>
+              <Link
+                href={`/app/compose?recipient=${encodeURIComponent(writer.username)}`}
+                className="flex items-center justify-center gap-2 px-4 py-2 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition font-medium text-sm"
+              >
+                <PenTool className="h-4 w-4" />
+                Write
+              </Link>
+            </div>
           </div>
         ))}
       </div>

@@ -61,7 +61,57 @@ export async function GET(request: NextRequest) {
         cities?.find((city) => city.uuid_id === user.city_uuid_id) ?? null,
     }));
 
-    return NextResponse.json({ users: usersWithCities }, { status: 200 });
+    const userIds = (users ?? []).map((user) => user.id);
+    const [{ data: currentFollows }, { data: followerRows }, { data: followingRows }] =
+      userIds.length > 0
+        ? await Promise.all([
+            userId
+              ? supabase
+                  .from('user_follows')
+                  .select('following_id')
+                  .eq('follower_id', userId)
+                  .in('following_id', userIds)
+              : Promise.resolve({ data: [] }),
+            supabase
+              .from('user_follows')
+              .select('following_id')
+              .in('following_id', userIds),
+            supabase
+              .from('user_follows')
+              .select('follower_id')
+              .in('follower_id', userIds),
+          ])
+        : [{ data: [] }, { data: [] }, { data: [] }];
+
+    const followingSet = new Set(
+      currentFollows?.map((follow) => follow.following_id) ?? [],
+    );
+    const followerCountByUser = new Map<string, number>();
+    for (const row of followerRows ?? []) {
+      followerCountByUser.set(
+        row.following_id,
+        (followerCountByUser.get(row.following_id) ?? 0) + 1,
+      );
+    }
+    const followingCountByUser = new Map<string, number>();
+    for (const row of followingRows ?? []) {
+      followingCountByUser.set(
+        row.follower_id,
+        (followingCountByUser.get(row.follower_id) ?? 0) + 1,
+      );
+    }
+
+    return NextResponse.json(
+      {
+        users: usersWithCities.map((user) => ({
+          ...user,
+          is_following: followingSet.has(user.id),
+          follower_count: followerCountByUser.get(user.id) ?? 0,
+          following_count: followingCountByUser.get(user.id) ?? 0,
+        })),
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
