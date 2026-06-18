@@ -5,10 +5,24 @@ import { CalendarDays, CheckCircle2, Rocket } from 'lucide-react';
 
 const releases = [
   {
+    number: 'Release 10',
+    title: 'Arrival Emails, Security Hardening, and Final Stability Pass',
+    date: 'June 18, 2026',
+    status: 'Latest',
+    changes: [
+      'Added email notifications when delayed letters reach their recipients.',
+      'Added a protected scheduled delivery endpoint and Supabase Cron setup.',
+      'Added a working per-user arrival email preference in Settings.',
+      'Secured letters, notifications, stamps, users, and dashboard API data.',
+      'Removed legacy Clerk, OAuth, custom-password, and database-test code.',
+      'Fixed sidebar accessibility, local Sentry console errors, linting, and dependency advisories.',
+    ],
+  },
+  {
     number: 'Release 09',
     title: 'Polished App Shell, Secure Letters, and Delivery Experience',
     date: 'June 5, 2026',
-    status: 'Latest',
+    status: 'Completed',
     changes: [
       'Added a mini user chip with avatar, username, dropdown links, and sign out.',
       'Added active-page highlighting in the sidebar.',

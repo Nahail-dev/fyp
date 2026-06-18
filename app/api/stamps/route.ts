@@ -1,14 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { STAMPS, STARTING_COMMON_STAMPS, getStampById } from '@/lib/stamps';
+import { STAMPS, STARTING_COMMON_STAMPS } from '@/lib/stamps';
+import { getServiceSupabase, getVerifiedAuthUser } from '@/lib/apiAuth';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = getServiceSupabase();
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const requestedUserId = request.nextUrl.searchParams.get('userId');
+    if (requestedUserId && requestedUserId !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const userId = auth.user.id;
     const type = request.nextUrl.searchParams.get('type');
 
     if (type === 'collected' && userId) {
@@ -53,60 +61,6 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { userId, stampId } = await request.json();
-
-    if (!userId || !stampId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 },
-      );
-    }
-
-    const stamp = getStampById(stampId);
-    if (stamp.id !== stampId) {
-      return NextResponse.json({ error: 'Invalid stamp id' }, { status: 400 });
-    }
-
-    const { data: existing, error: existingError } = await supabase
-      .from('user_stamp_inventory')
-      .select('quantity')
-      .eq('user_id', userId)
-      .eq('stamp_id', stamp.id)
-      .maybeSingle();
-
-    if (existingError) {
-      return NextResponse.json({ error: existingError.message }, { status: 500 });
-    }
-
-    const nextQuantity = Number(existing?.quantity ?? 0) + 1;
-    const { data: userStamp, error } = await supabase
-      .from('user_stamp_inventory')
-      .upsert(
-        {
-        user_id: userId,
-        stamp_id: stamp.id,
-        quantity: nextQuantity,
-        updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id,stamp_id',
-        },
-      )
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ userStamp }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

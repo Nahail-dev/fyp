@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Send, Calendar, User, Eye, Trash2, Zap, CheckCircle2, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import {
   formatDeliveryEta,
   getLetterDisplayStatus,
@@ -38,7 +39,7 @@ export default function SentLettersPage() {
   const supabase = createClient();
 
   const loadSentLetters = async (userId: string) => {
-    const response = await fetch(`/api/letters?userId=${userId}&type=sent`);
+    const response = await authenticatedFetch(`/api/letters?userId=${userId}&type=sent`);
     const data = await response.json();
 
     if (data.letters) {
@@ -54,7 +55,7 @@ export default function SentLettersPage() {
         setCurrentUserId(user.id);
         await loadSentLetters(user.id);
       } catch (error) {
-        console.log('[v0] Error fetching sent letters:', error);
+        console.error('[sent] Loading failed:', error);
       } finally {
         setLoading(false);
       }
@@ -101,27 +102,14 @@ export default function SentLettersPage() {
     if (!currentUserId) return;
 
     const syncDelivered = async () => {
-      const response = await fetch('/api/letters', {
+      const response = await authenticatedFetch('/api/letters', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserId, syncDelivered: true }),
       });
       const data = await response.json().catch(() => ({}));
-      if (response.ok && Array.isArray(data.letters) && data.letters.length > 0) {
-        const deliveredIds = new Set(data.letters.map((letter: { id: string }) => letter.id));
-        const deliveredAt = new Date().toISOString();
-        setLetters((current) =>
-          current.map((letter) =>
-            deliveredIds.has(letter.id)
-              ? {
-                  ...letter,
-                  status: 'delivered',
-                  delivered_at: deliveredAt,
-                  updated_at: deliveredAt,
-                }
-              : letter,
-          ),
-        );
+      if (response.ok && Number(data.delivered) > 0) {
+        await loadSentLetters(currentUserId);
       }
     };
 

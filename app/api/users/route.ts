@@ -1,13 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServiceSupabase, getVerifiedAuthUser } from '@/lib/apiAuth';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = getServiceSupabase();
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const userId = auth.user.id;
     const interest = request.nextUrl.searchParams.get('interest');
     const search = request.nextUrl.searchParams.get('search')?.trim();
     const publicOnly = request.nextUrl.searchParams.get('publicOnly') === 'true';
@@ -23,10 +26,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('profile_visibility', 'public');
     }
 
-    // If userId provided, exclude self
-    if (userId) {
-      query = query.neq('id', userId);
-    }
+    query = query.neq('id', userId);
 
     // If interest provided, filter by interests (assuming interests is a JSON field)
     if (interest) {

@@ -183,26 +183,6 @@ export default function SignupPage() {
 
     try {
       const normalizedEmail = email;
-      const emailCheckResponse = await fetch(
-        `/api/auth/signup?email=${encodeURIComponent(normalizedEmail)}`,
-      );
-      const emailCheck = await emailCheckResponse.json().catch(() => null);
-
-      if (!emailCheckResponse.ok) {
-        throw new Error(
-          typeof emailCheck?.error === "string"
-            ? emailCheck.error
-            : "Could not verify email availability",
-        );
-      }
-
-      if (emailCheck?.exists) {
-        toast.error("An account with this email already exists. Please sign in instead.");
-        resetHCaptcha();
-        setCaptchaToken("");
-        return;
-      }
-
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,

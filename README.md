@@ -22,6 +22,26 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Delivery emails
+
+Yuubin can email recipients when delayed letters arrive.
+
+1. Create a Resend API key and verify a sending domain.
+2. Add `RESEND_API_KEY`, `EMAIL_FROM`, `CRON_SECRET`, and
+   `NEXT_PUBLIC_SITE_URL` from `.env.example` to local development and Vercel.
+3. Run `report/supabase-delivery-email-cron.sql` in the Supabase SQL Editor
+   after replacing `YOUR_CRON_SECRET`.
+
+The Supabase Cron job calls the protected delivery endpoint every minute.
+Emails use a per-letter idempotency key, and users can disable arrival emails
+from Settings.
+
+## Database migrations
+
+Run the relevant SQL files in `report/` through the Supabase SQL Editor. The
+current application uses Supabase Auth only; the legacy `passwords` table and
+custom authentication routes are no longer part of Yuubin.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 ## Learn More

@@ -7,6 +7,7 @@ import { ALargeSmall, ArrowLeft, Bell, Download, Eye, KeyRound, Languages, Lock,
 import { createClient, resetBrowserClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { useAccessibility } from '@/components/accessibility-context';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 const SETTINGS_STORAGE_KEY = 'yuubin-settings';
 
@@ -87,6 +88,11 @@ export default function SettingsPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      setNotifications((current) => ({
+        ...current,
+        emailOnDelivery:
+          session?.user.user_metadata?.email_on_delivery !== false,
+      }));
       const headers: Record<string, string> = {};
       if (session?.access_token) {
         headers.Authorization = `Bearer ${session.access_token}`;
@@ -108,7 +114,7 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  const disabledNotificationKeys: NotificationKey[] = ['emailOnDelivery', 'emailOnReply'];
+  const disabledNotificationKeys: NotificationKey[] = ['emailOnReply'];
 
   const handleNotificationChange = (key: NotificationKey) => {
     if (disabledNotificationKeys.includes(key)) return;
@@ -137,6 +143,13 @@ export default function SettingsPage() {
       if (session?.access_token) {
         headers.Authorization = `Bearer ${session.access_token}`;
       }
+
+      const { error: preferenceError } = await supabase.auth.updateUser({
+        data: {
+          email_on_delivery: notifications.emailOnDelivery,
+        },
+      });
+      if (preferenceError) throw preferenceError;
 
       const response = await fetch('/api/profile', {
         method: 'PUT',
@@ -193,11 +206,11 @@ export default function SettingsPage() {
       const [profileRes, inboxRes, sentRes, draftsRes, stampsRes, notificationsRes] =
         await Promise.all([
           fetch('/api/profile', { credentials: 'include', headers }),
-          fetch(`/api/letters?userId=${user.id}&type=inbox`),
-          fetch(`/api/letters?userId=${user.id}&type=sent`),
-          fetch(`/api/letters?userId=${user.id}&type=drafts`),
-          fetch(`/api/stamps?userId=${user.id}&type=collected`),
-          fetch(`/api/notifications?userId=${user.id}`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=inbox`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=sent`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=drafts`),
+          authenticatedFetch(`/api/stamps?userId=${user.id}&type=collected`),
+          authenticatedFetch(`/api/notifications?userId=${user.id}`),
         ]);
 
       const exportData = {
@@ -280,8 +293,8 @@ export default function SettingsPage() {
     {
       key: 'emailOnDelivery' as const,
       label: 'Email when letter is delivered',
-      desc: 'Email delivery is not enabled yet.',
-      disabled: true,
+      desc: 'Receive an email as soon as a delayed letter reaches your inbox.',
+      disabled: false,
     },
     {
       key: 'emailOnReply' as const,

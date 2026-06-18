@@ -6,6 +6,7 @@ import { Award, Lock, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { STAMPS, type StampRarity } from '@/lib/stamps';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 interface Stamp {
   id: string;
@@ -58,7 +59,7 @@ export default function StampsPage() {
   const supabase = createClient();
 
   const loadStamps = async (userId: string) => {
-    const response = await fetch(`/api/stamps?userId=${userId}&type=collected`);
+    const response = await authenticatedFetch(`/api/stamps?userId=${userId}&type=collected`);
     const data = await response.json();
 
     if (data.stamps) {
@@ -83,7 +84,7 @@ export default function StampsPage() {
         setCurrentUserId(user.id);
         await loadStamps(user.id);
       } catch (error) {
-        console.log('[v0] Error fetching stamps:', error);
+        console.error('[stamps] Loading failed:', error);
       } finally {
         setLoading(false);
       }

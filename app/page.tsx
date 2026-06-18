@@ -323,7 +323,7 @@ export default function Home() {
         </div>
 
         <div className="mx-auto mt-8 max-w-7xl border-t border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 Yuubin. Crafted with care for thoughtful souls.</p>
+          <p>&copy; 2026 Yuubin. Crafted with care for thoughtful souls.</p>
         </div>
       </footer>
     </main>

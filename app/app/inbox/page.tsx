@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import {
   formatDeliveryEta,
   getLetterDisplayStatus,
@@ -59,7 +60,7 @@ export default function InboxPage() {
   const supabase = createClient();
 
   const loadInboxLetters = async (userId: string) => {
-    const response = await fetch(`/api/letters?userId=${userId}&type=inbox`);
+    const response = await authenticatedFetch(`/api/letters?userId=${userId}&type=inbox`);
     const data = await response.json();
 
     if (data.letters) {
@@ -75,7 +76,7 @@ export default function InboxPage() {
         setCurrentUserId(user.id);
         await loadInboxLetters(user.id);
       } catch (error) {
-        console.log('[v0] Error fetching inbox:', error);
+        console.error('[inbox] Loading failed:', error);
       } finally {
         setLoading(false);
       }
@@ -122,22 +123,14 @@ export default function InboxPage() {
     if (!currentUserId) return;
 
     const syncDelivered = async () => {
-      const response = await fetch('/api/letters', {
+      const response = await authenticatedFetch('/api/letters', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserId, syncDelivered: true }),
       });
       const data = await response.json().catch(() => ({}));
-      if (response.ok && Array.isArray(data.letters) && data.letters.length > 0) {
-        const deliveredIds = new Set(data.letters.map((letter: { id: string }) => letter.id));
-        const deliveredAt = new Date().toISOString();
-        setLetters((current) =>
-          current.map((letter) =>
-            deliveredIds.has(letter.id)
-              ? { ...letter, status: 'delivered', delivered_at: deliveredAt }
-              : letter,
-          ),
-        );
+      if (response.ok && Number(data.delivered) > 0) {
+        await loadInboxLetters(currentUserId);
       }
     };
 

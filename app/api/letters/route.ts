@@ -1,76 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { CityRowSchema } from '@/lib/citiesSchema';
 import { calculateDelivery } from '@/lib/deliveryTime';
 import { DEFAULT_STAMP_ID, getStampById } from '@/lib/stamps';
+import { syncLetterDeliveries } from '@/lib/deliveryNotifications';
+import { getServiceSupabase, getVerifiedAuthUser } from '@/lib/apiAuth';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-async function markDueLettersDelivered(userId?: string | null) {
-  const now = new Date().toISOString();
-  let query = supabase
-    .from('letters')
-    .update({
-      delivered_at: now,
-      status: 'delivered',
-      updated_at: now,
-    })
-    .is('delivered_at', null)
-    .not('estimated_delivery_at', 'is', null)
-    .lte('estimated_delivery_at', now)
-    .neq('status', 'draft');
-
-  if (userId) {
-    query = query.or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
-  }
-
-  return query.select('id, recipient_id, sender_id, title');
-}
-
-async function notifyDeliveredLetters(
-  letters: Array<{
-    id: string;
-    recipient_id: string | null;
-    sender_id: string | null;
-    title: string | null;
-  }> | null,
-) {
-  const deliveredLetters =
-    letters?.filter((letter) => letter.recipient_id && letter.id) ?? [];
-
-  if (!deliveredLetters.length) return;
-
-  const letterIds = deliveredLetters.map((letter) => letter.id);
-  const { data: existingNotifications } = await supabase
-    .from('notifications')
-    .select('related_letter_id')
-    .eq('type', 'letter_delivered')
-    .in('related_letter_id', letterIds);
-
-  const notifiedLetterIds = new Set(
-    existingNotifications?.map((notification) => notification.related_letter_id) ?? [],
-  );
-
-  const notifications = deliveredLetters
-    .filter((letter) => !notifiedLetterIds.has(letter.id))
-    .map((letter) => ({
-      user_id: letter.recipient_id,
-      type: 'letter_delivered',
-      title: 'Your letter has arrived',
-      message: `"${letter.title || 'Untitled letter'}" is now ready to open.`,
-      related_user_id: letter.sender_id,
-      related_letter_id: letter.id,
-    }));
-
-  if (!notifications.length) return;
-
-  const { error } = await supabase.from('notifications').insert(notifications);
-  if (error) {
-    console.log('[api/letters] delivered notification insert failed:', error);
-  }
-}
+const supabase = getServiceSupabase();
 
 type LetterRow = {
   sender_id?: string | null;
@@ -122,24 +57,30 @@ async function attachLetterProfiles(letters: LetterRow[] | null) {
 // GET - Fetch user's letters
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const requestedUserId = request.nextUrl.searchParams.get('userId');
+    if (requestedUserId && requestedUserId !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const userId = auth.user.id;
     const type = request.nextUrl.searchParams.get('type'); // inbox, sent, drafts
 
-    if (!userId) {
+    if (!['inbox', 'sent', 'drafts'].includes(type ?? '')) {
       return NextResponse.json(
-        { error: 'Missing userId' },
+        { error: 'Invalid letter type' },
         { status: 400 }
       );
     }
 
-    const {
-      data: deliveredLetters,
-      error: deliverySyncError,
-    } = await markDueLettersDelivered(userId);
-    if (deliverySyncError) {
+    try {
+      await syncLetterDeliveries(supabase, userId);
+    } catch (deliverySyncError) {
       console.log('[api/letters] delivery sync failed:', deliverySyncError);
-    } else {
-      await notifyDeliveredLetters(deliveredLetters);
     }
 
     let query = supabase.from('letters').select('*');
@@ -179,6 +120,11 @@ export async function GET(request: NextRequest) {
 // POST - Create new letter
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const {
       senderId,
       recipientId,
@@ -188,6 +134,10 @@ export async function POST(request: NextRequest) {
       language = 'en',
       stampId = DEFAULT_STAMP_ID,
     } = await request.json();
+
+    if (senderId !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const normalizedTitle =
       typeof title === 'string' && title.trim() ? title.trim() : 'Untitled Draft';
@@ -368,15 +318,19 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await getVerifiedAuthUser(request);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const { userId, syncDelivered = false } = await request.json();
+    if (userId && userId !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     if (syncDelivered) {
-      const { data: letters, error } = await markDueLettersDelivered(userId);
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      await notifyDeliveredLetters(letters);
-      return NextResponse.json({ letters: letters ?? [] }, { status: 200 });
+      const result = await syncLetterDeliveries(supabase, auth.user.id);
+      return NextResponse.json(result, { status: 200 });
     }
 
     return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });

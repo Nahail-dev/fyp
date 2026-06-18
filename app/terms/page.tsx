@@ -30,7 +30,7 @@ const terms = [
   },
   {
     title: 'Notifications',
-    body: 'Yuubin may show in-app notifications and browser popups for letter activity. Email notification features may remain disabled until fully implemented.',
+    body: 'Yuubin may show in-app notifications, browser popups, and optional arrival emails for letter activity. Users can disable arrival emails in Settings. Delivery emails contain letter metadata and a secure app link, not the private letter body.',
   },
   {
     title: 'Account Deactivation',
@@ -51,7 +51,7 @@ export default function TermsPage() {
             <FileText className="h-9 w-9 text-primary" />
             <h1 className="text-4xl font-serif font-bold text-foreground">Terms of Service</h1>
           </div>
-          <p className="text-muted-foreground">Last updated: June 4, 2026</p>
+          <p className="text-muted-foreground">Last updated: June 18, 2026</p>
           <p className="max-w-3xl text-muted-foreground">
             These terms describe the expected use of Yuubin and the responsibilities of users of the platform.
           </p>

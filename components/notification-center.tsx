@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, Check, CheckCircle2, Mail, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabaseClient';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 type AppNotification = {
   id: string;
@@ -57,7 +58,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/notifications?userId=${userId}`);
+      const response = await authenticatedFetch(`/api/notifications?userId=${userId}`);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return;
 
@@ -136,7 +137,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
   };
 
   const markRead = async (notificationId: string) => {
-    await fetch('/api/notifications', {
+    await authenticatedFetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notificationId, isRead: true }),
@@ -152,7 +153,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
 
   const markAllRead = async () => {
     if (!userId) return;
-    await fetch('/api/notifications', {
+    await authenticatedFetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, markAll: true }),

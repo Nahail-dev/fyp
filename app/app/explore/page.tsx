@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Compass, User, Mail, Filter, MapPin, PenTool, UserCheck, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import { AppScreenLoader } from '@/components/app-screen-loader';
 
 interface WriterProfile {
@@ -38,14 +39,14 @@ export default function ExplorePage() {
         const params = new URLSearchParams({ publicOnly: 'true' });
         if (user) params.set('userId', user.id);
 
-        const response = await fetch(`/api/users?${params.toString()}`);
+        const response = await authenticatedFetch(`/api/users?${params.toString()}`);
         const data = await response.json();
         
         if (data.users) {
           setWriters(data.users);
         }
       } catch (error) {
-        console.log('[v0] Error fetching writers:', error);
+        console.error('[explore] Loading failed:', error);
       } finally {
         setLoading(false);
       }

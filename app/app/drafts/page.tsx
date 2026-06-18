@@ -6,6 +6,7 @@ import { FileText, Calendar, Edit2, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 type DraftLetter = {
   id: string;
@@ -30,7 +31,7 @@ export default function DraftsPage() {
       if (!user) return;
 
       setUserId(user.id);
-      const response = await fetch(`/api/letters?userId=${user.id}&type=drafts`);
+      const response = await authenticatedFetch(`/api/letters?userId=${user.id}&type=drafts`);
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {

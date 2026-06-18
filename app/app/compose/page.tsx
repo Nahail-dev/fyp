@@ -7,6 +7,7 @@ import { transliterateRomanUrdu } from '@/lib/urduTransliteration';
 import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { DEFAULT_STAMP_ID, STAMPS, getStampById } from '@/lib/stamps';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 interface Letter {
   recipient: string;
@@ -118,7 +119,7 @@ export default function ComposePage() {
           search: recipientParam,
           userId: currentUserId,
         });
-        const response = await fetch(`/api/users?${params.toString()}`);
+        const response = await authenticatedFetch(`/api/users?${params.toString()}`);
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) return;
@@ -166,7 +167,7 @@ export default function ComposePage() {
           params.set('userId', currentUserId);
         }
 
-        const response = await fetch(
+        const response = await authenticatedFetch(
           `/api/users?${params.toString()}`,
         );
         const data = await response.json();
@@ -217,7 +218,7 @@ export default function ComposePage() {
         return;
       }
 
-      const response = await fetch('/api/letters', {
+      const response = await authenticatedFetch('/api/letters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -299,7 +300,7 @@ export default function ComposePage() {
         stampId: letterData.stamp,
       };
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         draftId ? `/api/letters/${draftId}` : '/api/letters',
         {
           method: draftId ? 'PATCH' : 'POST',

@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import { useAccessibility } from '@/components/accessibility-context';
 
 interface UserProfile {
@@ -130,8 +131,8 @@ export default function Dashboard() {
         if (!user) return;
 
         const [statsResponse, lettersResponse] = await Promise.all([
-          fetch(`/api/stats?userId=${user.id}`),
-          fetch(`/api/letters?userId=${user.id}&type=inbox`),
+          authenticatedFetch(`/api/stats?userId=${user.id}`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=inbox`),
         ]);
 
         const statsData = await statsResponse.json().catch(() => emptyStats);
@@ -145,7 +146,7 @@ export default function Dashboard() {
           setLetters(lettersData.letters.slice(0, 6));
         }
       } catch (error) {
-        console.log('[v0] Error fetching dashboard data:', error);
+        console.error('[dashboard] Data loading failed:', error);
       } finally {
         setLoading(false);
       }
@@ -211,7 +212,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="postal-card p-7">
+        <div className="yuubin-dashboard-hero postal-card p-7">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               {stats.profile?.avatar_url ? (
@@ -266,7 +267,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="postal-card p-7">
+        <div className="yuubin-polished-card postal-card p-7">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             {t('letterActivity')}
           </p>
@@ -300,7 +301,7 @@ export default function Dashboard() {
           <Link
             key={label}
             href={href}
-            className="postal-card group p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+            className="yuubin-stat-card postal-card group p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -316,14 +317,14 @@ export default function Dashboard() {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[0.82fr_1.18fr]">
-        <div className="postal-card p-6">
+        <div className="yuubin-polished-card postal-card p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="font-serif text-2xl font-bold text-foreground">{t('atAGlance')}</h3>
             <Sparkles className="h-5 w-5 text-primary" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             {detailStats.map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-sm border border-border bg-background/40 p-4">
+              <div key={label} className="yuubin-mini-stat rounded-sm border border-border bg-background/40 p-4">
                 <Icon className="mb-3 h-5 w-5 text-primary" />
                 <p className="font-serif text-2xl font-bold text-foreground">
                   {value.toLocaleString()}
@@ -346,7 +347,7 @@ export default function Dashboard() {
           </div>
 
           {letters.length === 0 ? (
-            <div className="postal-card p-10 text-center">
+            <div className="yuubin-polished-card postal-card p-10 text-center">
               <Mail className="mx-auto mb-4 h-12 w-12 text-primary/50" />
               <h4 className="font-serif text-xl font-bold text-foreground">{t('noLettersYet')}</h4>
               <p className="mt-2 text-muted-foreground">
@@ -368,7 +369,7 @@ export default function Dashboard() {
                   <Link
                     key={letter.id}
                     href={`/app/letter/${letter.id}`}
-                    className="postal-card group flex min-h-64 flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="yuubin-letter-preview-card postal-card group flex min-h-64 flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">

@@ -403,6 +403,131 @@
   }
 }
 
+.yuubin-app-shell {
+  background:
+    radial-gradient(
+      circle at 12% 10%,
+      color-mix(in srgb, var(--primary) 14%, transparent),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 88% 18%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 24%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--background) 92%, var(--card) 8%),
+      var(--background)
+    );
+}
+
+.yuubin-sidebar,
+.yuubin-topbar {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 92%, var(--primary) 8%),
+      color-mix(in srgb, var(--card) 96%, var(--background) 4%)
+    );
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.yuubin-topbar {
+  box-shadow:
+    0 18px 50px color-mix(in srgb, var(--background) 86%, #000 14%),
+    inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.yuubin-sidebar-brand,
+.yuubin-sidebar-footer {
+  background: color-mix(in srgb, var(--card) 82%, var(--background) 18%);
+}
+
+.yuubin-app-nav-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.yuubin-app-nav-link::before {
+  content: '';
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 180ms ease;
+}
+
+.yuubin-app-nav-link-active::before {
+  background: var(--primary);
+}
+
+.yuubin-app-nav-link-active {
+  box-shadow:
+    0 10px 28px color-mix(in srgb, var(--primary) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.yuubin-user-chip,
+.yuubin-menu-popover {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 88%, var(--primary) 12%),
+      color-mix(in srgb, var(--card) 96%, var(--background) 4%)
+    );
+}
+
+.yuubin-app-content {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background) 88%, transparent),
+      color-mix(in srgb, var(--background) 98%, var(--card) 2%)
+    );
+}
+
+.yuubin-polished-card,
+.yuubin-dashboard-hero,
+.yuubin-stat-card,
+.yuubin-letter-preview-card {
+  box-shadow:
+    0 18px 48px color-mix(in srgb, var(--background) 76%, #000 24%),
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.yuubin-dashboard-hero {
+  background:
+    radial-gradient(
+      circle at 12% 18%,
+      color-mix(in srgb, var(--primary) 18%, transparent),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 86%, var(--primary) 14%),
+      color-mix(in srgb, var(--card) 96%, var(--background) 4%)
+    );
+}
+
+.yuubin-stat-card,
+.yuubin-mini-stat,
+.yuubin-letter-preview-card {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 92%, var(--background) 8%),
+      color-mix(in srgb, var(--card) 98%, var(--primary) 2%)
+    );
+}
+
+.yuubin-stat-card:hover,
+.yuubin-letter-preview-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--border) 46%);
+}
+
 @keyframes yuubin-letter-travel {
   0% {
     transform: translateY(-50%) translateX(-3px) rotate(-2deg);
