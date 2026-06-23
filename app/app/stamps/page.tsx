@@ -6,6 +6,7 @@ import { Award, Lock, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { STAMPS, type StampRarity } from '@/lib/stamps';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 interface Stamp {
   id: string;
@@ -54,31 +55,36 @@ export default function StampsPage() {
     })),
   );
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabase = createClient();
+
+  const loadStamps = async (userId: string) => {
+    const response = await authenticatedFetch(`/api/stamps?userId=${userId}&type=collected`);
+    const data = await response.json();
+
+    if (data.stamps) {
+      setStamps(
+        data.stamps.map((stamp: Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon'; image?: string }) => {
+          const rarity = stamp.rarity === 'uncommon' ? 'epic' : stamp.rarity;
+          return {
+            ...stamp,
+            rarity,
+            image_url: stamp.image_url || stamp.image,
+          };
+        })
+      );
+    }
+  };
 
   useEffect(() => {
     const fetchStamps = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        const response = await fetch(`/api/stamps?userId=${user.id}&type=collected`);
-        const data = await response.json();
-        
-        if (data.stamps) {
-          setStamps(
-            data.stamps.map((stamp: Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon'; image?: string }) => {
-              const rarity = stamp.rarity === 'uncommon' ? 'epic' : stamp.rarity;
-              return {
-                ...stamp,
-                rarity,
-                image_url: stamp.image_url || stamp.image,
-              };
-            })
-          );
-        }
+        setCurrentUserId(user.id);
+        await loadStamps(user.id);
       } catch (error) {
-        console.log('[v0] Error fetching stamps:', error);
+        console.error('[stamps] Loading failed:', error);
       } finally {
         setLoading(false);
       }
@@ -86,6 +92,30 @@ export default function StampsPage() {
 
     fetchStamps();
   }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const channel = supabase
+      .channel(`user-stamps-${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_stamps',
+          filter: `user_id=eq.${currentUserId}`,
+        },
+        () => {
+          void loadStamps(currentUserId);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
 
   if (loading) {
     return (

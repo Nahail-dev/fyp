@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       mapRowToProfile(rawProfile as Record<string, unknown>, auth.user.email),
     );
   } catch (error) {
-    console.log('[v0] Profile GET error:', error);
+    console.error('[api/profile GET] failed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -168,8 +168,6 @@ export async function PUT(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    console.log('[v0] Updating profile for user:', auth.user.id, body);
 
     const updatePayload: Record<string, unknown> = {
       full_name: full_name || undefined,
@@ -209,7 +207,7 @@ export async function PUT(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
-      console.log('[v0] Profile update error:', error);
+      console.error('[api/profile PUT] update failed:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -220,12 +218,11 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log('[v0] Profile updated successfully:', profile);
     return NextResponse.json(
       mapRowToProfile(profile as Record<string, unknown>, auth.user.email),
     );
   } catch (error) {
-    console.log('[v0] Profile PUT error:', error);
+    console.error('[api/profile PUT] failed:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

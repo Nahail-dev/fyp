@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Send, X, Stamp as StampIcon, Save, Eye, User } from 'lucide-react';
+import { Send, X, Stamp as StampIcon, Save, Eye, User, Languages } from 'lucide-react';
 import Image from 'next/image';
 import { transliterateRomanUrdu } from '@/lib/urduTransliteration';
 import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { DEFAULT_STAMP_ID, STAMPS, getStampById } from '@/lib/stamps';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 interface Letter {
   recipient: string;
@@ -41,6 +42,7 @@ export default function ComposePage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [urduInputMode, setUrduInputMode] = useState<'roman' | 'native'>('roman');
 
   useEffect(() => {
     const loadCurrentUser = async () => {
@@ -117,7 +119,7 @@ export default function ComposePage() {
           search: recipientParam,
           userId: currentUserId,
         });
-        const response = await fetch(`/api/users?${params.toString()}`);
+        const response = await authenticatedFetch(`/api/users?${params.toString()}`);
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) return;
@@ -165,7 +167,7 @@ export default function ComposePage() {
           params.set('userId', currentUserId);
         }
 
-        const response = await fetch(
+        const response = await authenticatedFetch(
           `/api/users?${params.toString()}`,
         );
         const data = await response.json();
@@ -216,7 +218,7 @@ export default function ComposePage() {
         return;
       }
 
-      const response = await fetch('/api/letters', {
+      const response = await authenticatedFetch('/api/letters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -298,7 +300,7 @@ export default function ComposePage() {
         stampId: letterData.stamp,
       };
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         draftId ? `/api/letters/${draftId}` : '/api/letters',
         {
           method: draftId ? 'PATCH' : 'POST',
@@ -355,8 +357,15 @@ export default function ComposePage() {
   const updateTextField = (field: 'subject' | 'content', value: string) => {
     setLetterData({
       ...letterData,
-      [field]: isUrdu ? transliterateRomanUrdu(value) : value,
+      [field]: isUrdu && urduInputMode === 'roman' ? transliterateRomanUrdu(value) : value,
     });
+  };
+
+  const insertUrduSnippet = (snippet: string) => {
+    setLetterData((current) => ({
+      ...current,
+      content: `${current.content}${current.content ? ' ' : ''}${snippet}`,
+    }));
   };
 
   const selectRecipient = (recipient: RecipientUser) => {
@@ -516,6 +525,60 @@ export default function ComposePage() {
             </div>
 
             {/* Subject */}
+            {isUrdu && (
+              <div className="postal-card p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Languages className="h-5 w-5 text-primary" />
+                  <h3 className="font-serif font-bold text-foreground">Urdu Editor</h3>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      value: 'roman',
+                      label: 'Roman Urdu Converter',
+                      desc: 'Type “aap kaise hain” and Yuubin converts it.',
+                    },
+                    {
+                      value: 'native',
+                      label: 'Native Urdu Keyboard',
+                      desc: 'Use your Urdu keyboard directly without conversion.',
+                    },
+                  ].map((mode) => (
+                    <button
+                      key={mode.value}
+                      type="button"
+                      onClick={() => setUrduInputMode(mode.value as typeof urduInputMode)}
+                      className={`rounded-sm border p-4 text-left transition ${
+                        urduInputMode === mode.value
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <span className="block font-medium">{mode.label}</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {mode.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2" dir="rtl">
+                  {['محترم دوست،', 'امید ہے آپ خیریت سے ہوں گے۔', 'آپ کا شکریہ۔', 'والسلام،'].map(
+                    (snippet) => (
+                      <button
+                        key={snippet}
+                        type="button"
+                        onClick={() => insertUrduSnippet(snippet)}
+                        className={`rounded-sm border border-border px-3 py-2 text-sm hover:bg-muted ${writingFont}`}
+                      >
+                        {snippet}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Subject */}
             <div className="postal-card p-6 space-y-3">
               <label className="block text-sm font-serif font-bold text-foreground">
                 {isUrdu ? 'موضوع' : 'Subject'}
@@ -554,7 +617,12 @@ export default function ComposePage() {
               />
               <p className="text-xs text-muted-foreground">
                 {letterData.content.length} characters
-                {isUrdu && ' · Roman Urdu typing is enabled'}
+                {isUrdu &&
+                  ` · ${
+                    urduInputMode === 'roman'
+                      ? 'Roman Urdu conversion is enabled'
+                      : 'Native Urdu typing is enabled'
+                  }`}
               </p>
             </div>
 

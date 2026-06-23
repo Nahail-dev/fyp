@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Send, Calendar, User, Eye, Trash2, Zap, CheckCircle2 } from 'lucide-react';
+import { Send, Calendar, User, Eye, Trash2, Zap, CheckCircle2, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import {
   formatDeliveryEta,
   getLetterDisplayStatus,
@@ -30,11 +31,21 @@ interface SentLetter {
 export default function SentLettersPage() {
   const [letters, setLetters] = useState<SentLetter[]>([]);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [, setProgressTick] = useState(0);
   const supabase = createClient();
+
+  const loadSentLetters = async (userId: string) => {
+    const response = await authenticatedFetch(`/api/letters?userId=${userId}&type=sent`);
+    const data = await response.json();
+
+    if (data.letters) {
+      setLetters(data.letters);
+    }
+  };
 
   useEffect(() => {
     const fetchLetters = async () => {
@@ -42,15 +53,9 @@ export default function SentLettersPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         setCurrentUserId(user.id);
-
-        const response = await fetch(`/api/letters?userId=${user.id}&type=sent`);
-        const data = await response.json();
-        
-        if (data.letters) {
-          setLetters(data.letters);
-        }
+        await loadSentLetters(user.id);
       } catch (error) {
-        console.log('[v0] Error fetching sent letters:', error);
+        console.error('[sent] Loading failed:', error);
       } finally {
         setLoading(false);
       }
@@ -58,6 +63,32 @@ export default function SentLettersPage() {
 
     fetchLetters();
   }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const refreshSent = () => {
+      void loadSentLetters(currentUserId);
+    };
+
+    const channel = supabase
+      .channel(`sent-letters-${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'letters',
+          filter: `sender_id=eq.${currentUserId}`,
+        },
+        refreshSent,
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [currentUserId]);
 
   useEffect(() => {
     const tick = window.setInterval(() => {
@@ -71,27 +102,14 @@ export default function SentLettersPage() {
     if (!currentUserId) return;
 
     const syncDelivered = async () => {
-      const response = await fetch('/api/letters', {
+      const response = await authenticatedFetch('/api/letters', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: currentUserId, syncDelivered: true }),
       });
       const data = await response.json().catch(() => ({}));
-      if (response.ok && Array.isArray(data.letters) && data.letters.length > 0) {
-        const deliveredIds = new Set(data.letters.map((letter: { id: string }) => letter.id));
-        const deliveredAt = new Date().toISOString();
-        setLetters((current) =>
-          current.map((letter) =>
-            deliveredIds.has(letter.id)
-              ? {
-                  ...letter,
-                  status: 'delivered',
-                  delivered_at: deliveredAt,
-                  updated_at: deliveredAt,
-                }
-              : letter,
-          ),
-        );
+      if (response.ok && Number(data.delivered) > 0) {
+        await loadSentLetters(currentUserId);
       }
     };
 
@@ -142,8 +160,13 @@ export default function SentLettersPage() {
 
   const filteredLetters = letters.filter(letter => {
     const displayStatus = getLetterDisplayStatus(letter);
-    if (filter === 'all') return true;
-    return displayStatus === filter;
+    const matchesFilter = filter === 'all' || displayStatus === filter;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      letter.title.toLowerCase().includes(query) ||
+      (letter.recipient_profile?.username || '').toLowerCase().includes(query);
+    return matchesFilter && matchesSearch;
   });
 
   if (loading) {
@@ -165,21 +188,33 @@ export default function SentLettersPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-border">
-        {['all', 'delivered', 'in-transit'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-4 py-2 capitalize border-b-2 transition ${
-              filter === tab
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab === 'all' ? 'All' : tab === 'delivered' ? 'Delivered' : 'In Transit'}
-          </button>
-        ))}
+      {/* Search and Filter Tabs */}
+      <div className="postal-card p-4 space-y-4">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search sent letters by title or recipient username"
+            className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        <div className="flex gap-2 border-b border-border">
+          {['all', 'delivered', 'in-transit'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setFilter(tab)}
+              className={`px-4 py-2 capitalize border-b-2 transition ${
+                filter === tab
+                  ? 'border-primary text-primary font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab === 'all' ? 'All' : tab === 'delivered' ? 'Delivered' : 'In Transit'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Letters List */}

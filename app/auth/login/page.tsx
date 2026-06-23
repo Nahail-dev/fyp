@@ -47,7 +47,7 @@ export default function LoginPage() {
       resetBrowserClient();
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           captchaToken,
@@ -62,7 +62,7 @@ export default function LoginPage() {
       }
 
       if (rememberMe) {
-        window.localStorage.setItem("yuubin-remembered-email", email);
+        window.localStorage.setItem("yuubin-remembered-email", email.trim().toLowerCase());
       } else {
         window.localStorage.removeItem("yuubin-remembered-email");
       }
@@ -98,7 +98,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <form onSubmit={handleSubmit} className="postal-card p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="postal-card p-8 space-y-5">
           {/* Email Field */}
           <div className="space-y-2">
             <label
@@ -108,14 +108,14 @@ export default function LoginPage() {
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
               <input
                 id="email"
                 type="email"
                 placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-sm border border-border bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
                 required
               />
             </div>
@@ -130,14 +130,14 @@ export default function LoginPage() {
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
               <input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-sm border border-border bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
                 required
               />
             </div>
@@ -149,15 +149,15 @@ export default function LoginPage() {
           />
 
           {/* Remember Me & Forgot Password */}
-          <div className="flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <label className="flex cursor-pointer items-center gap-3 text-foreground">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(event) => setRememberMe(event.target.checked)}
-                className="w-4 h-4 rounded border-border"
+                className="h-4 w-4 rounded border-border accent-primary"
               />
-              <span className="text-muted-foreground">Remember me</span>
+              <span>Remember me</span>
             </label>
             <Link href="/auth/forgot-password" className="text-primary hover:underline">
               Forgot password?
@@ -168,10 +168,10 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-primary text-primary-foreground font-serif font-bold py-3 rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3 font-serif font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
           >
             {isLoading ? (
-              <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
               <>
                 Sign In

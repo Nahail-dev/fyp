@@ -11,6 +11,19 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+function applyTheme(newTheme: Theme) {
+  const html = document.documentElement;
+  html.classList.remove('dark', 'vintage', 'modern');
+
+  if (newTheme === 'night') {
+    html.classList.add('dark');
+  } else if (newTheme === 'vintage') {
+    html.classList.add('vintage');
+  } else {
+    html.classList.add('modern');
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('modern');
 
@@ -20,22 +33,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(storedTheme);
     applyTheme(storedTheme);
   }, []);
-
-  const applyTheme = (newTheme: Theme) => {
-    const html = document.documentElement;
-    
-    // Remove all theme classes
-    html.classList.remove('dark', 'vintage', 'modern');
-    
-    // Apply the new theme
-    if (newTheme === 'night') {
-      html.classList.add('dark');
-    } else if (newTheme === 'vintage') {
-      html.classList.add('vintage');
-    } else {
-      html.classList.add('modern');
-    }
-  };
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);

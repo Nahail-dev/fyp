@@ -16,6 +16,7 @@ const sections = [
     body: [
       'We use your data to authenticate your account, show your profile, calculate delayed delivery time, save drafts, send and receive letters, display stamp inventory, show notifications, and power the Explore page for public profiles.',
       'Your selected city is used for delivery timing rules. You provide the city once, and Yuubin uses its country, continent, timezone, and coordinates from the cities dataset.',
+      'If arrival emails are enabled, Yuubin sends your email address, the sender username, letter title, and secure letter link to the configured transactional email provider. Letter content is not included in the email.',
     ],
   },
   {
@@ -28,7 +29,7 @@ const sections = [
   {
     title: 'Cookies and Local Storage',
     body: [
-      'Yuubin uses essential browser storage for authentication, remember-me behavior, cookie consent, theme settings, notification preferences, and privacy preferences that are not yet server-backed.',
+      'Yuubin uses essential browser storage for authentication, remember-me behavior, cookie consent, theme settings, and selected local preferences. The arrival-email preference is stored with your authenticated account.',
       'You can clear browser storage from your browser settings, but doing so may sign you out or reset local preferences.',
     ],
   },
@@ -43,7 +44,7 @@ const sections = [
     title: 'Your Choices',
     body: [
       'You can edit your profile, change profile visibility, choose an avatar, set your city, download your data from Settings, and deactivate your profile.',
-      'Some features, such as email notifications and replies, may appear as planned or disabled until they are fully implemented.',
+      'You can enable or disable arrival emails from Settings. Disabling them does not affect in-app delivery notifications.',
     ],
   },
 ];
@@ -57,7 +58,7 @@ export default function PrivacyPage() {
             <ShieldCheck className="h-9 w-9 text-primary" />
             <h1 className="text-4xl font-serif font-bold text-foreground">Privacy Policy</h1>
           </div>
-          <p className="text-muted-foreground">Last updated: June 4, 2026</p>
+          <p className="text-muted-foreground">Last updated: June 18, 2026</p>
           <p className="max-w-3xl text-muted-foreground">
             This page explains how Yuubin handles information inside the digital letter exchange platform.
           </p>
@@ -107,8 +108,8 @@ export default function PrivacyPage() {
             <Link href="/terms" className="text-primary hover:underline">
               Terms of Service
             </Link>
-            <Link href="/updates" className="text-primary hover:underline">
-              Update Log
+            <Link href="/release-notes" className="text-primary hover:underline">
+              Release Notes
             </Link>
           </div>
         </div>

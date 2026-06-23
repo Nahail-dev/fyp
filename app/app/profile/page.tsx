@@ -143,7 +143,7 @@ export default function ProfilePage() {
         setSelectedAvatarUrl(data.avatar_url);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to load profile';
-        console.log('[v0] Error fetching profile:', message, error);
+        console.error('[profile] Loading failed:', message, error);
         toast.error(message);
       } finally {
         setIsLoading(false);
@@ -254,9 +254,8 @@ export default function ProfilePage() {
       setProfile(updatedProfile);
       setIsEditing(false);
       toast.success('Profile updated successfully');
-      console.log('[v0] Profile saved:', updatedProfile);
     } catch (error) {
-      console.log('[v0] Error saving profile:', error);
+      console.error('[profile] Save failed:', error);
       toast.error('Failed to update profile');
     } finally {
       setIsSaving(false);
@@ -275,7 +274,7 @@ export default function ProfilePage() {
       await new Promise((resolve) => setTimeout(resolve, 800));
       router.push('/auth/login');
     } catch (error) {
-      console.log('[v0] Sign out error:', error);
+      console.error('[profile] Sign out failed:', error);
       toast.error('Failed to sign out');
     }
   };

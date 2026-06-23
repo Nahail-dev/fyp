@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { syncLetterDeliveries } from '@/lib/deliveryNotifications';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -48,48 +49,6 @@ function hasLetterArrived(letter: {
   return new Date(letter.estimated_delivery_at).getTime() <= Date.now();
 }
 
-async function markLetterDeliveredIfDue(id: string) {
-  const now = new Date().toISOString();
-  const { data: letters } = await supabase
-    .from('letters')
-    .update({
-      delivered_at: now,
-      status: 'delivered',
-      updated_at: now,
-    })
-    .eq('id', id)
-    .is('delivered_at', null)
-    .not('estimated_delivery_at', 'is', null)
-    .lte('estimated_delivery_at', now)
-    .neq('status', 'draft')
-    .select('id, recipient_id, sender_id, title');
-
-  const deliveredLetter = letters?.[0];
-  if (!deliveredLetter?.recipient_id) return;
-
-  const { data: existingNotification } = await supabase
-    .from('notifications')
-    .select('id')
-    .eq('type', 'letter_delivered')
-    .eq('related_letter_id', deliveredLetter.id)
-    .maybeSingle();
-
-  if (existingNotification) return;
-
-  const { error } = await supabase.from('notifications').insert({
-    user_id: deliveredLetter.recipient_id,
-    type: 'letter_delivered',
-    title: 'Your letter has arrived',
-    message: `"${deliveredLetter.title || 'Untitled letter'}" is now ready to open.`,
-    related_user_id: deliveredLetter.sender_id,
-    related_letter_id: deliveredLetter.id,
-  });
-
-  if (error) {
-    console.log('[api/letters/id] delivered notification insert failed:', error);
-  }
-}
-
 // GET - Fetch single letter
 export async function GET(
   request: NextRequest,
@@ -102,7 +61,7 @@ export async function GET(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    await markLetterDeliveredIfDue(id);
+    await syncLetterDeliveries(supabase, auth.user.id);
 
     const { data: letter, error } = await supabase
       .from('letters')
@@ -212,7 +171,7 @@ export async function PATCH(
     } = body;
 
     if (action === 'sync-delivery') {
-      await markLetterDeliveredIfDue(id);
+      await syncLetterDeliveries(supabase, auth.user.id);
       const { data: letter, error } = await supabase
         .from('letters')
         .select('*')
@@ -226,13 +185,37 @@ export async function PATCH(
       return NextResponse.json({ letter }, { status: 200 });
     }
 
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (existingLetter.recipient_id === auth.user.id) {
+      if (typeof isRead !== 'boolean') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const { data: letter, error } = await supabase
+        .from('letters')
+        .update({
+          is_read: isRead,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('recipient_id', auth.user.id)
+        .select()
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ letter }, { status: 200 });
+    }
+
     if (existingLetter.sender_id !== auth.user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const updates: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
     if (typeof title === 'string') updates.title = title.trim() || 'Untitled Draft';
     if (typeof content === 'string') updates.content = content;
     if (typeof status === 'string') updates.status = status;

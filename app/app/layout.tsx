@@ -22,8 +22,11 @@ import { createClient, resetBrowserClient } from '@/lib/supabaseClient';
 import { ThemeSwitcher } from '@/components/theme-switcher';
 import { ThemeLogo } from '@/components/theme-logo';
 import { NotificationCenter } from '@/components/notification-center';
+import { AccessibilityControls } from '@/components/accessibility-controls';
+import { useAccessibility } from '@/components/accessibility-context';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { AppScreenLoader } from '@/components/app-screen-loader';
 
 interface UserProfile {
   id: string;
@@ -45,12 +48,13 @@ export default function AppLayout({
   const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useAccessibility();
 
   const navLinkClass = (href: string) => {
     const isActive = href === '/app' ? pathname === href : pathname.startsWith(href);
-    return `flex items-center gap-3 rounded-sm px-4 py-3 text-foreground transition-colors ${
+    return `yuubin-app-nav-link flex min-h-11 items-center gap-3 rounded-sm px-4 py-2.5 text-foreground transition-colors ${
       isActive
-        ? 'border border-primary/30 bg-primary/15 text-primary shadow-sm'
+        ? 'yuubin-app-nav-link-active border border-primary/30 bg-primary/15 text-primary shadow-sm'
         : 'hover:bg-muted/50'
     }`;
   };
@@ -62,15 +66,15 @@ export default function AppLayout({
         toast.error(error.message);
         return;
       }
-      toast.success('Signed out successfully');
+      toast.success(t('signOutSuccess'));
       setUser(null);
       setUserMenuOpen(false);
       resetBrowserClient();
       await new Promise((resolve) => setTimeout(resolve, 800));
       router.push('/auth/login');
     } catch (error) {
-      console.log('[v0] Sign out error:', error);
-      toast.error('Failed to sign out');
+      console.error('[app-layout] Sign out failed:', error);
+      toast.error(t('signOutError'));
     }
   };
 
@@ -101,9 +105,8 @@ export default function AppLayout({
               email: profile.email || authUser.email || '',
               avatar_url: profile.avatar_url || null,
             });
-            console.log('[v0] User profile loaded:', profile);
           } else {
-            console.log('[v0] Layout profile error:', profile?.error || response.status);
+            console.error('[app-layout] Profile request failed:', profile?.error || response.status);
             setUser({
               id: authUser.id,
               username:
@@ -115,9 +118,12 @@ export default function AppLayout({
               avatar_url: authUser.user_metadata?.avatar_url || null,
             });
           }
+        } else {
+          setUser(null);
+          router.replace('/auth/login');
         }
       } catch (error) {
-        console.log('[v0] Error fetching user:', error);
+        console.error('[app-layout] User loading failed:', error);
       } finally {
         setLoading(false);
       }
@@ -126,12 +132,23 @@ export default function AppLayout({
     fetchUser();
   }, []);
 
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppScreenLoader
+          title={loading ? t('loading') : t('signingIn')}
+          message={loading ? t('loadingYourData') : t('redirecting')}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="yuubin-app-shell flex h-screen overflow-hidden bg-background">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} h-screen shrink-0 overflow-hidden bg-card border-r border-border transition-all duration-300 flex flex-col`}>
+      <aside className={`yuubin-sidebar yuubin-scrollbar-hidden ${sidebarOpen ? 'w-64' : 'w-20'} h-screen shrink-0 overflow-y-auto overflow-x-hidden bg-card transition-all duration-300 flex flex-col border-r border-border`}>
         {/* Logo */}
-        <div className="flex h-24 shrink-0 items-center justify-between border-b border-border px-6">
+        <div className="yuubin-sidebar-brand flex h-20 shrink-0 items-center justify-between border-b border-border px-5 md:h-24 md:px-6">
           {sidebarOpen && (
             <Link href="/app" className="flex items-center gap-2">
               <ThemeLogo className="[&_img]:h-8 [&_img]:w-14" />
@@ -141,13 +158,13 @@ export default function AppLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="min-h-0 flex-1 space-y-1.5 p-3 md:space-y-2 md:p-4">
           <Link
             href="/app"
             className={`${navLinkClass('/app')} group`}
           >
             <Mail className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Dashboard</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('dashboard')}</span>}
           </Link>
 
           <Link
@@ -155,7 +172,7 @@ export default function AppLayout({
             className={navLinkClass('/app/inbox')}
           >
             <Inbox className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Inbox</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('inbox')}</span>}
           </Link>
 
           <Link
@@ -163,7 +180,7 @@ export default function AppLayout({
             className={navLinkClass('/app/compose')}
           >
             <PenTool className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Compose</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('compose')}</span>}
           </Link>
 
           <Link
@@ -171,7 +188,7 @@ export default function AppLayout({
             className={navLinkClass('/app/stamps')}
           >
             <Stamp className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Stamps</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('stamps')}</span>}
           </Link>
 
           <Link
@@ -179,7 +196,7 @@ export default function AppLayout({
             className={navLinkClass('/app/explore')}
           >
             <Compass className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Explore</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('explore')}</span>}
           </Link>
 
           <Link
@@ -187,7 +204,7 @@ export default function AppLayout({
             className={navLinkClass('/app/sent')}
           >
             <Send className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Sent</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('sent')}</span>}
           </Link>
 
           <Link
@@ -195,12 +212,12 @@ export default function AppLayout({
             className={navLinkClass('/app/drafts')}
           >
             <FileText className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Drafts</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('drafts')}</span>}
           </Link>
         </nav>
 
         {/* Bottom Navigation */}
-        <div className="border-t border-border p-4 space-y-2">
+        <div className="yuubin-sidebar-footer shrink-0 space-y-1.5 border-t border-border p-3 md:space-y-2 md:p-4">
           {!loading && user && (
             <Link
               href="/app/profile"
@@ -218,42 +235,44 @@ export default function AppLayout({
               )}
               {sidebarOpen && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-muted-foreground truncate">Signed in as</p>
-                  <p className="font-medium text-sm text-foreground truncate">{user.full_name}</p>
+                  <p className="text-xs leading-tight text-muted-foreground">{t('signedInAs')}</p>
+                  <p className="break-words text-sm font-medium leading-tight text-foreground">{user.full_name}</p>
                 </div>
               )}
             </Link>
           )}
           
-          <Link
-            href="/app/profile"
-            className={navLinkClass('/app/profile')}
-          >
-            <User className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Profile</span>}
-          </Link>
+          {(!user || loading) && (
+            <Link
+              href="/app/profile"
+              className={navLinkClass('/app/profile')}
+            >
+              <User className="w-5 h-5 flex-shrink-0" />
+              {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('profile')}</span>}
+            </Link>
+          )}
 
           <Link
             href="/app/settings"
             className={navLinkClass('/app/settings')}
           >
             <Settings className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Settings</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('settings')}</span>}
           </Link>
 
           <button 
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-sm hover:bg-muted/50 text-foreground transition-colors"
+            className="flex min-h-11 w-full items-center gap-3 rounded-sm px-4 py-2.5 text-foreground transition-colors hover:bg-muted/50"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="font-medium">Sign Out</span>}
+            {sidebarOpen && <span className="min-w-0 break-words font-medium leading-tight">{t('signOut')}</span>}
           </button>
         </div>
 
         {/* Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="mx-4 mb-4 px-4 py-2 rounded-sm border border-border hover:bg-muted text-sm text-muted-foreground transition-colors"
+          className="mx-3 mb-3 shrink-0 rounded-sm border border-border bg-card/70 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted md:mx-4 md:mb-4"
         >
           {sidebarOpen ? '←' : '→'}
         </button>
@@ -262,19 +281,20 @@ export default function AppLayout({
       {/* Main Content */}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="flex h-24 shrink-0 items-center border-b border-border bg-card px-8">
+        <header className="yuubin-topbar flex h-24 shrink-0 items-center border-b border-border bg-card px-8">
           <div className="flex w-full min-w-0 items-center justify-between gap-6">
             <ThemeLogo className="min-w-0 shrink-0" />
-            <div className="flex min-w-0 items-center justify-end gap-6">
+            <div className="flex min-w-0 items-center justify-end gap-4">
               <NotificationCenter userId={user?.id ?? null} />
+              <AccessibilityControls />
               <ThemeSwitcher />
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((open) => !open)}
-                  className="flex max-w-56 items-center gap-3 rounded-sm border border-border bg-card px-3 py-2 text-left transition hover:bg-muted/50"
+                  className="yuubin-user-chip flex max-w-56 items-center gap-3 rounded-sm border border-border bg-card px-3 py-2 text-left transition hover:bg-muted/50"
                   aria-expanded={userMenuOpen}
-                  aria-label="Open user menu"
+                  aria-label={t('userMenuLabel')}
                 >
                   {user?.avatar_url ? (
                     <img
@@ -289,10 +309,10 @@ export default function AppLayout({
                   )}
                   <span className="min-w-0">
                     <span className="block text-xs text-muted-foreground">
-                      Welcome back
+                      {t('welcomeBack')}
                     </span>
                     <span className="block truncate text-sm font-medium text-foreground">
-                      {loading ? 'Loading...' : user?.username || user?.full_name || 'Yuubin user'}
+                      {loading ? t('loading') : user?.username || user?.full_name || t('yuubinUser')}
                     </span>
                   </span>
                   <ChevronDown
@@ -303,24 +323,24 @@ export default function AppLayout({
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-sm border border-border bg-card shadow-2xl">
+                  <div className="yuubin-menu-popover absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-sm border border-border bg-card shadow-2xl">
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate font-serif font-bold text-foreground">
-                        {user?.username || user?.full_name || 'Yuubin user'}
+                        {user?.username || user?.full_name || t('yuubinUser')}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {user?.email || 'Signed in'}
+                      <p className="truncate text-xs text-muted-foreground" dir="ltr">
+                        {user?.email || t('signedIn')}
                       </p>
                     </div>
 
                     <div className="p-2">
                       {[
-                        { href: '/app/profile', label: 'Profile', icon: User },
-                        { href: '/app/settings', label: 'Settings', icon: Settings },
-                        { href: '/updates', label: 'Updates', icon: Newspaper },
-                        { href: '/privacy', label: 'Privacy Policy', icon: Shield },
-                        { href: '/terms', label: 'Terms of Service', icon: FileText },
-                        { href: '/help', label: 'Help', icon: HelpCircle },
+                        { href: '/app/profile', label: t('profile'), icon: User },
+                        { href: '/app/settings', label: t('settings'), icon: Settings },
+                        { href: '/release-notes', label: t('releaseNotes'), icon: Newspaper },
+                        { href: '/privacy', label: t('privacyPolicy'), icon: Shield },
+                        { href: '/terms', label: t('termsOfService'), icon: FileText },
+                        { href: '/help', label: t('help'), icon: HelpCircle },
                       ].map(({ href, label, icon: Icon }) => (
                         <Link
                           key={href}
@@ -341,7 +361,7 @@ export default function AppLayout({
                         className="flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm text-destructive transition hover:bg-destructive/10"
                       >
                         <LogOut className="h-4 w-4" />
-                        Sign Out
+                        {t('signOut')}
                       </button>
                     </div>
                   </div>
@@ -352,7 +372,7 @@ export default function AppLayout({
         </header>
 
         {/* Page Content */}
-        <div className="yuubin-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-8">
+        <div className="yuubin-app-content yuubin-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8">
           {children}
         </div>
       </main>

@@ -179,10 +179,10 @@ export default function HelpPage() {
               <p className="text-sm text-muted-foreground">Our community standards</p>
             </Link>
             <Link
-              href="/updates"
+              href="/release-notes"
               className="postal-card p-6 hover:shadow-lg transition text-center space-y-2"
             >
-              <p className="font-serif font-bold text-foreground">Update Log</p>
+              <p className="font-serif font-bold text-foreground">Release Notes</p>
               <p className="text-sm text-muted-foreground">See what features were added</p>
             </Link>
           </div>

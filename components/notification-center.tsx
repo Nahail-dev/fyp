@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, CheckCircle2, Mail, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabaseClient';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 type AppNotification = {
   id: string;
@@ -48,6 +50,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
   const hasLoadedOnceRef = useRef(false);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const router = useRouter();
+  const supabase = createClient();
 
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
@@ -55,7 +58,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
     if (!userId) return;
 
     try {
-      const response = await fetch(`/api/notifications?userId=${userId}`);
+      const response = await authenticatedFetch(`/api/notifications?userId=${userId}`);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return;
 
@@ -100,6 +103,30 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
     return () => window.clearInterval(interval);
   }, [fetchNotifications]);
 
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          void fetchNotifications();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications, userId]);
+
   const requestBrowserPermission = async () => {
     if (!('Notification' in window)) {
       setPermission('unsupported');
@@ -110,7 +137,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
   };
 
   const markRead = async (notificationId: string) => {
-    await fetch('/api/notifications', {
+    await authenticatedFetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notificationId, isRead: true }),
@@ -126,7 +153,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
 
   const markAllRead = async () => {
     if (!userId) return;
-    await fetch('/api/notifications', {
+    await authenticatedFetch('/api/notifications', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, markAll: true }),

@@ -4,6 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --yuubin-font-scale: 1;
+
   /* Postal Cream Base */
   --background: #FDF8F3;
   --foreground: #3D2817;
@@ -221,6 +223,10 @@
 }
 
 @layer base {
+  html {
+    font-size: calc(16px * var(--yuubin-font-scale));
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -230,6 +236,20 @@
     overflow-x: hidden;
     font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
     text-rendering: optimizeLegibility;
+  }
+
+  .yuubin-urdu-ui body {
+    font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.85;
+  }
+
+  .yuubin-urdu-ui .font-serif {
+    font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Georgia, serif;
+  }
+
+  .yuubin-urdu-ui [dir='ltr'] {
+    direction: ltr;
+    unicode-bidi: plaintext;
   }
   
   /* Modern Theme - Ink & Light Letter Writing Gradient */
@@ -383,6 +403,131 @@
   }
 }
 
+.yuubin-app-shell {
+  background:
+    radial-gradient(
+      circle at 12% 10%,
+      color-mix(in srgb, var(--primary) 14%, transparent),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 88% 18%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 24%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--background) 92%, var(--card) 8%),
+      var(--background)
+    );
+}
+
+.yuubin-sidebar,
+.yuubin-topbar {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 92%, var(--primary) 8%),
+      color-mix(in srgb, var(--card) 96%, var(--background) 4%)
+    );
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.yuubin-topbar {
+  box-shadow:
+    0 18px 50px color-mix(in srgb, var(--background) 86%, #000 14%),
+    inset 0 -1px 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.yuubin-sidebar-brand,
+.yuubin-sidebar-footer {
+  background: color-mix(in srgb, var(--card) 82%, var(--background) 18%);
+}
+
+.yuubin-app-nav-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.yuubin-app-nav-link::before {
+  content: '';
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 180ms ease;
+}
+
+.yuubin-app-nav-link-active::before {
+  background: var(--primary);
+}
+
+.yuubin-app-nav-link-active {
+  box-shadow:
+    0 10px 28px color-mix(in srgb, var(--primary) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.yuubin-user-chip,
+.yuubin-menu-popover {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 88%, var(--primary) 12%),
+      color-mix(in srgb, var(--card) 96%, var(--background) 4%)
+    );
+}
+
+.yuubin-app-content {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--background) 88%, transparent),
+      color-mix(in srgb, var(--background) 98%, var(--card) 2%)
+    );
+}
+
+.yuubin-polished-card,
+.yuubin-dashboard-hero,
+.yuubin-stat-card,
+.yuubin-letter-preview-card {
+  box-shadow:
+    0 18px 48px color-mix(in srgb, var(--background) 76%, #000 24%),
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.yuubin-dashboard-hero {
+  background:
+    radial-gradient(
+      circle at 12% 18%,
+      color-mix(in srgb, var(--primary) 18%, transparent),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 86%, var(--primary) 14%),
+      color-mix(in srgb, var(--card) 96%, var(--background) 4%)
+    );
+}
+
+.yuubin-stat-card,
+.yuubin-mini-stat,
+.yuubin-letter-preview-card {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 92%, var(--background) 8%),
+      color-mix(in srgb, var(--card) 98%, var(--primary) 2%)
+    );
+}
+
+.yuubin-stat-card:hover,
+.yuubin-letter-preview-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--border) 46%);
+}
+
 @keyframes yuubin-letter-travel {
   0% {
     transform: translateY(-50%) translateX(-3px) rotate(-2deg);
@@ -498,4 +643,69 @@
 
 .animate-letter-flutter {
   animation: letter-flutter 1.5s ease-in-out infinite;
+}
+
+.yuubin-toast {
+  --yuubin-toast-accent: var(--primary);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 94%, var(--primary) 6%),
+      color-mix(in srgb, var(--card) 98%, var(--background) 2%)
+    ) !important;
+  border-color: color-mix(in srgb, var(--yuubin-toast-accent) 42%, var(--border) 58%) !important;
+  color: var(--foreground) !important;
+  box-shadow:
+    0 18px 48px color-mix(in srgb, var(--background) 72%, #000 28%),
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 18%, transparent) !important;
+}
+
+.yuubin-toast-title {
+  color: var(--yuubin-toast-accent) !important;
+  letter-spacing: 0;
+}
+
+.yuubin-toast-description {
+  color: var(--muted-foreground) !important;
+}
+
+.yuubin-toast-icon {
+  color: var(--yuubin-toast-accent) !important;
+}
+
+.yuubin-toast-success {
+  --yuubin-toast-accent: var(--status-delivered);
+}
+
+.yuubin-toast-error {
+  --yuubin-toast-accent: var(--destructive);
+}
+
+.yuubin-toast-warning {
+  --yuubin-toast-accent: var(--status-transit);
+}
+
+.yuubin-toast-info {
+  --yuubin-toast-accent: var(--primary);
+}
+
+.yuubin-toast-success [data-title],
+.yuubin-toast-error [data-title],
+.yuubin-toast-warning [data-title],
+.yuubin-toast-info [data-title],
+.yuubin-toast-success [data-icon],
+.yuubin-toast-error [data-icon],
+.yuubin-toast-warning [data-icon],
+.yuubin-toast-info [data-icon] {
+  color: var(--yuubin-toast-accent) !important;
+}
+
+.yuubin-toast::before {
+  content: '';
+  position: absolute;
+  inset-block: 8px;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--yuubin-toast-accent);
 }

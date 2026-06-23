@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, Lock, Eye, Trash2, Save, KeyRound, Download } from 'lucide-react';
+import { ALargeSmall, ArrowLeft, Bell, Download, Eye, KeyRound, Languages, Lock, Save, Trash2 } from 'lucide-react';
 import { createClient, resetBrowserClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
+import { useAccessibility } from '@/components/accessibility-context';
+import { authenticatedFetch } from '@/lib/authenticatedFetch';
 
 const SETTINGS_STORAGE_KEY = 'yuubin-settings';
 
@@ -48,6 +50,7 @@ export default function SettingsPage() {
   });
   const supabase = createClient();
   const router = useRouter();
+  const { language, setLanguage, setTextScale, textScale, t } = useAccessibility();
 
   type NotificationKey = keyof typeof notifications;
   type PrivacyKey = keyof typeof privacy;
@@ -85,6 +88,11 @@ export default function SettingsPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      setNotifications((current) => ({
+        ...current,
+        emailOnDelivery:
+          session?.user.user_metadata?.email_on_delivery !== false,
+      }));
       const headers: Record<string, string> = {};
       if (session?.access_token) {
         headers.Authorization = `Bearer ${session.access_token}`;
@@ -106,7 +114,7 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  const disabledNotificationKeys: NotificationKey[] = ['emailOnDelivery', 'emailOnReply'];
+  const disabledNotificationKeys: NotificationKey[] = ['emailOnReply'];
 
   const handleNotificationChange = (key: NotificationKey) => {
     if (disabledNotificationKeys.includes(key)) return;
@@ -135,6 +143,13 @@ export default function SettingsPage() {
       if (session?.access_token) {
         headers.Authorization = `Bearer ${session.access_token}`;
       }
+
+      const { error: preferenceError } = await supabase.auth.updateUser({
+        data: {
+          email_on_delivery: notifications.emailOnDelivery,
+        },
+      });
+      if (preferenceError) throw preferenceError;
 
       const response = await fetch('/api/profile', {
         method: 'PUT',
@@ -191,11 +206,11 @@ export default function SettingsPage() {
       const [profileRes, inboxRes, sentRes, draftsRes, stampsRes, notificationsRes] =
         await Promise.all([
           fetch('/api/profile', { credentials: 'include', headers }),
-          fetch(`/api/letters?userId=${user.id}&type=inbox`),
-          fetch(`/api/letters?userId=${user.id}&type=sent`),
-          fetch(`/api/letters?userId=${user.id}&type=drafts`),
-          fetch(`/api/stamps?userId=${user.id}&type=collected`),
-          fetch(`/api/notifications?userId=${user.id}`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=inbox`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=sent`),
+          authenticatedFetch(`/api/letters?userId=${user.id}&type=drafts`),
+          authenticatedFetch(`/api/stamps?userId=${user.id}&type=collected`),
+          authenticatedFetch(`/api/notifications?userId=${user.id}`),
         ]);
 
       const exportData = {
@@ -278,8 +293,8 @@ export default function SettingsPage() {
     {
       key: 'emailOnDelivery' as const,
       label: 'Email when letter is delivered',
-      desc: 'Email delivery is not enabled yet.',
-      disabled: true,
+      desc: 'Receive an email as soon as a delayed letter reaches your inbox.',
+      disabled: false,
     },
     {
       key: 'emailOnReply' as const,
@@ -308,6 +323,83 @@ export default function SettingsPage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h1 className="text-3xl font-serif font-bold text-foreground">Settings</h1>
+      </div>
+
+      <div className="postal-card p-8 space-y-6">
+        <div className="flex items-center gap-3">
+          <ALargeSmall className="w-6 h-6 text-primary" />
+          <h2 className="text-2xl font-serif font-bold text-foreground">{t('accessibility')}</h2>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-lg border border-border p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <Languages className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">{t('language')}</p>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ur'
+                    ? 'ویب سائٹ اردو اور دائیں سے بائیں انداز میں دکھائی جائے گی۔'
+                    : 'Switch Yuubin between English and Urdu RTL mode.'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { value: 'en', label: t('english') },
+                { value: 'ur', label: t('urdu') },
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLanguage(option.value)}
+                  className={`rounded-sm border px-4 py-3 font-medium transition ${
+                    language === option.value
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border p-4">
+            <div className="mb-4 flex items-center gap-3">
+              <ALargeSmall className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">{t('textSize')}</p>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'ur'
+                    ? 'کمزور نظر والے صارفین کے لیے متن بڑا کریں۔'
+                    : 'Increase text size for users who need easier reading.'}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {([
+                { value: 'normal', label: t('normalText'), sample: 'A' },
+                { value: 'large', label: t('largeText'), sample: 'A+' },
+                { value: 'extra', label: t('extraLargeText'), sample: 'A++' },
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setTextScale(option.value)}
+                  className={`rounded-sm border px-3 py-3 text-center transition ${
+                    textScale === option.value
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border text-foreground hover:bg-muted/40'
+                  }`}
+                >
+                  <span className="block font-bold">{option.sample}</span>
+                  <span className="block text-xs opacity-80">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="postal-card p-8 space-y-6">

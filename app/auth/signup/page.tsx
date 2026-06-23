@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
-import { Mail, User, ArrowRight } from "lucide-react";
+import { ArrowRight, Check, Lock, Mail, MapPin, User, X } from "lucide-react";
 import { HCaptchaChallenge, resetHCaptcha } from "@/components/hcaptcha-challenge";
 import { createClient } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
@@ -34,13 +34,33 @@ export default function SignupPage() {
 
   const lastSubmitRef = useRef(0); // ✅ cooldown
   const isSubmittingRef = useRef(false); // ✅ hard lock
+  const citySearchCacheRef = useRef<Map<string, CityOption[]>>(new Map());
 
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const canSubmit =
+    formData.name.trim().length > 0 &&
+    formData.email.trim().length > 0 &&
+    formData.password.length >= 6 &&
+    formData.confirmPassword.length >= 6 &&
+    Boolean(selectedCity) &&
+    agreeTerms &&
+    Boolean(captchaToken) &&
+    !isLoading;
 
   useEffect(() => {
-    if (selectedCity || citySearch.trim().length < 2) {
+    const searchTerm = citySearch.trim();
+
+    if (selectedCity || searchTerm.length < 3) {
       setCityResults([]);
+      setIsSearchingCities(false);
+      return;
+    }
+
+    const cacheKey = searchTerm.toLowerCase();
+    const cachedResults = citySearchCacheRef.current.get(cacheKey);
+    if (cachedResults) {
+      setCityResults(cachedResults);
       setIsSearchingCities(false);
       return;
     }
@@ -50,11 +70,13 @@ export default function SignupPage() {
       setIsSearchingCities(true);
       try {
         const response = await fetch(
-          `/api/cities?search=${encodeURIComponent(citySearch.trim())}`,
+          `/api/cities?search=${encodeURIComponent(searchTerm)}`,
           { signal: controller.signal },
         );
         const data = await response.json();
-        setCityResults(response.ok ? data.cities || [] : []);
+        const cities = response.ok ? data.cities || [] : [];
+        citySearchCacheRef.current.set(cacheKey, cities);
+        setCityResults(cities);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.log("[signup] City search failed:", error);
@@ -63,7 +85,7 @@ export default function SignupPage() {
       } finally {
         setIsSearchingCities(false);
       }
-    }, 300);
+    }, 450);
 
     return () => {
       window.clearTimeout(timeout);
@@ -75,6 +97,16 @@ export default function SignupPage() {
     toast.success(message);
     await new Promise((resolve) => setTimeout(resolve, 800));
     router.push(href);
+  };
+
+  const isDuplicateEmailError = (message: string) => {
+    const normalized = message.toLowerCase();
+    return (
+      normalized.includes("already registered") ||
+      normalized.includes("already exists") ||
+      normalized.includes("already been registered") ||
+      normalized.includes("user already registered")
+    );
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,9 +132,23 @@ export default function SignupPage() {
     lastSubmitRef.current = now;
     isSubmittingRef.current = true;
 
-    const { name, email, password, confirmPassword } = formData;
+    const name = formData.name.trim();
+    const email = formData.email.trim().toLowerCase();
+    const { password, confirmPassword } = formData;
 
     // ✅ Validations
+    if (!name) {
+      toast.error("Full name is required");
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!email) {
+      toast.error("Email is required");
+      isSubmittingRef.current = false;
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       isSubmittingRef.current = false;
@@ -136,8 +182,9 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+      const normalizedEmail = email;
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           captchaToken,
@@ -153,6 +200,8 @@ export default function SignupPage() {
         // 🎯 Handle rate limit nicely
         if (error.message.toLowerCase().includes("rate")) {
           toast.error("Too many attempts. Please wait and try again.");
+        } else if (isDuplicateEmailError(error.message)) {
+          toast.error("An account with this email already exists. Please sign in instead.");
         } else {
           toast.error(error.message);
         }
@@ -202,14 +251,20 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} className="postal-card p-8 space-y-5">
           {/* Name */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Full Name</label>
+            <label htmlFor="name" className="block text-sm font-medium text-foreground">
+              Full Name <span className="text-destructive">*</span>
+            </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <User className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
               <input
+                id="name"
                 name="name"
+                type="text"
+                placeholder="Your full name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full pl-10 py-3 border rounded-sm"
+                className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+                aria-required="true"
                 required
               />
             </div>
@@ -217,15 +272,20 @@ export default function SignupPage() {
 
           {/* Email */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-foreground">
+              Email <span className="text-destructive">*</span>
+            </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
               <input
+                id="email"
                 name="email"
                 type="email"
+                placeholder="your@email.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-10 py-3 border rounded-sm"
+                className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+                aria-required="true"
                 required
               />
             </div>
@@ -233,12 +293,14 @@ export default function SignupPage() {
 
           {/* City */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              City for Letter Delivery
+            <label htmlFor="city" className="block text-sm font-medium text-foreground">
+              City for Letter Delivery <span className="text-destructive">*</span>
             </label>
             {selectedCity ? (
               <div className="flex items-center justify-between gap-3 rounded-sm border border-primary/40 bg-primary/10 px-4 py-3">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-3">
+                  <MapPin className="h-5 w-5 shrink-0 text-primary" />
+                  <div className="min-w-0">
                   <p className="truncate font-serif font-bold text-foreground">
                     {selectedCity.city}, {selectedCity.country}
                   </p>
@@ -247,6 +309,7 @@ export default function SignupPage() {
                       {selectedCity.admin_name}
                     </p>
                   )}
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -257,18 +320,23 @@ export default function SignupPage() {
                   className="rounded-sm p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
                   aria-label="Remove selected city"
                 >
-                  X
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ) : (
               <>
-                <input
-                  value={citySearch}
-                  onChange={(e) => setCitySearch(e.target.value)}
-                  placeholder="Search city, e.g. Sahiwal"
-                  className="w-full px-4 py-3 border rounded-sm"
-                  required
-                />
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
+                  <input
+                    id="city"
+                    value={citySearch}
+                    onChange={(e) => setCitySearch(e.target.value)}
+                    placeholder="Search city, e.g. Sahiwal"
+                    className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    aria-required="true"
+                    required
+                  />
+                </div>
                 {(cityResults.length > 0 || isSearchingCities) && (
                   <div className="max-h-60 overflow-y-auto rounded-sm border border-border bg-card shadow-xl">
                     {isSearchingCities ? (
@@ -305,37 +373,64 @@ export default function SignupPage() {
           </div>
 
           {/* Password */}
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full py-3 border rounded-sm"
-            required
-          />
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground">
+              Password <span className="text-destructive">*</span>
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Create a password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+                minLength={6}
+                aria-required="true"
+                required
+              />
+            </div>
+          </div>
 
           {/* Confirm */}
-          <input
-            name="confirmPassword"
-            type="password"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            className="w-full py-3 border rounded-sm"
-            required
-          />
+          <div className="space-y-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
+              Confirm Password <span className="text-destructive">*</span>
+            </label>
+            <div className="relative">
+              <Check className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full rounded-sm border border-border bg-input py-3 pl-10 pr-4 text-foreground placeholder-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+                minLength={6}
+                aria-required="true"
+                required
+              />
+            </div>
+          </div>
 
           {/* Terms */}
-          <label className="flex gap-2">
+          <label className="flex cursor-pointer items-center gap-3 text-sm text-foreground">
             <input
               type="checkbox"
               checked={agreeTerms}
               onChange={(e) => setAgreeTerms(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary"
+              required
             />
-            <span className="text-sm">I agree to Terms & Privacy Policy</span>
+            <span>I agree to Terms & Privacy Policy <span className="text-destructive">*</span></span>
           </label>
 
+          <p className="text-xs text-muted-foreground">
+            Captcha is required <span className="text-destructive">*</span>
+          </p>
           <HCaptchaChallenge
             onVerify={setCaptchaToken}
             onExpire={() => setCaptchaToken("")}
@@ -344,12 +439,12 @@ export default function SignupPage() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={isLoading || !agreeTerms}
-            className="w-full py-3 bg-primary text-white rounded-sm font-medium hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            disabled={!canSubmit}
+            className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3 font-serif font-bold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
           >
             {isLoading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
                 Creating...
               </>
             ) : (
