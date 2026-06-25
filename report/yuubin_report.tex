@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{report}
+﻿\documentclass[12pt,a4paper]{report}
 % --- Packages ----------------------------------------------------------------
 \usepackage[a4paper, margin=1in, headheight=15pt]{geometry}
 \usepackage{graphicx}
@@ -344,49 +344,27 @@ This section presents the major technologies and tools used to develop \textbf{Y
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.2cm,
+    node distance=0.65cm,
     every node/.style={font=\small},
-    centerbox/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3.5cm,
-        minimum height=1cm,
-        fill=accent!15
-    },
-    techbox/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=4.3cm,
-        minimum height=0.9cm,
-        fill=lightgray
-    },
+    titlebox/.style={rectangle, draw, rounded corners, align=center,
+        text width=10.5cm, minimum height=0.9cm, fill=accent!15},
+    box/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.9cm, fill=lightgray},
     arrow/.style={-{Latex}, thick}
 ]
-
-\node[centerbox] (yuubin) {\textbf{Yuubin}\\Technology Stack};
-
-\node[techbox, above=1.3cm of yuubin] (frontend) {\textbf{Frontend}\\Next.js, React, Tailwind CSS};
-\node[techbox, below=1.3cm of yuubin] (backend) {\textbf{Backend}\\Next.js API Routes};
-\node[techbox, left=2.2cm of yuubin] (monitoring) {\textbf{Monitoring}\\Sentry};
-\node[techbox, right=2.2cm of yuubin] (auth) {\textbf{Authentication}\\Supabase Auth};
-\node[techbox, above left=1.5cm and 1.5cm of yuubin] (realtime) {\textbf{Realtime}\\Supabase Realtime};
-\node[techbox, above right=1.5cm and 1.5cm of yuubin] (database) {\textbf{Database}\\Supabase PostgreSQL};
-\node[techbox, below left=1.5cm and 1.5cm of yuubin] (language) {\textbf{Language \& UI}\\TypeScript, Urdu Editor};
-\node[techbox, below right=1.5cm and 1.5cm of yuubin] (deploy) {\textbf{Deployment \& Version Control}\\Vercel, Git/GitHub};
-
-\draw[arrow] (yuubin) -- (frontend);
-\draw[arrow] (yuubin) -- (backend);
-\draw[arrow] (yuubin) -- (auth);
-\draw[arrow] (yuubin) -- (database);
-\draw[arrow] (yuubin) -- (realtime);
-\draw[arrow] (yuubin) -- (monitoring);
-\draw[arrow] (yuubin) -- (language);
-\draw[arrow] (yuubin) -- (deploy);
-
+\node[titlebox] (yuubin) {\textbf{Yuubin Technology Stack}};
+\node[box, below=of yuubin] (client)
+{\textbf{Client and Interface:} Next.js, React, TypeScript, Tailwind CSS, Urdu editor and accessibility controls};
+\node[box, below=of client] (server)
+{\textbf{Application Logic:} Next.js route handlers, validation, delivery rules and protected API operations};
+\node[box, below=of server] (platform)
+{\textbf{Managed Services:} Supabase Auth, PostgreSQL database and Supabase Realtime};
+\node[box, below=of platform] (operations)
+{\textbf{Operations:} Vercel deployment, Resend arrival email, Sentry monitoring and GitHub version control};
+\draw[arrow] (yuubin) -- (client);
+\draw[arrow] (client) -- (server);
+\draw[arrow] (server) -- (platform);
+\draw[arrow] (platform) -- (operations);
 \end{tikzpicture}
 \caption{Technology and Tools Used in Yuubin}
 \label{fig:technology_tools}
@@ -417,42 +395,27 @@ Yuubin also supports public users in the Explore page. Users who set their profi
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.3cm,
+    node distance=0.65cm,
     every node/.style={font=\small},
-    actor/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3.2cm,
-        minimum height=0.9cm,
-        fill=accent!15
-    },
-    action/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3.5cm,
-        minimum height=0.85cm,
-        fill=lightgray
-    },
+    titlebox/.style={rectangle, draw, rounded corners, align=center,
+        text width=10.5cm, minimum height=0.9cm, fill=accent!15},
+    box/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=1cm, fill=lightgray},
     arrow/.style={-{Latex}, thick}
 ]
-
-\node[actor] (user) {\textbf{Registered User}};
-\node[action, above left=1.1cm and 1.6cm of user] (profile) {Manage Profile\\Avatar, City, Theme};
-\node[action, above right=1.1cm and 1.6cm of user] (explore) {Explore Users\\Public Profiles};
-\node[action, below left=1.1cm and 1.6cm of user] (compose) {Compose Letter\\Language, Stamp};
-\node[action, below right=1.1cm and 1.6cm of user] (inbox) {Inbox \& Sent\\Delivery Tracking};
-\node[action, below=2.4cm of user] (social) {Replies, Reactions\\Follows, Notifications};
-
-\draw[arrow] (user) -- (profile);
-\draw[arrow] (user) -- (explore);
-\draw[arrow] (user) -- (compose);
-\draw[arrow] (user) -- (inbox);
-\draw[arrow] (user) -- (social);
-
+\node[titlebox] (user) {\textbf{Registered User on Web Browser}};
+\node[box, below=of user] (auth)
+{\textbf{Authentication:} provides email, password and hCaptcha; receives a Supabase session and JWT access token.};
+\node[box, below=of auth] (profile)
+{\textbf{Profile Management:} provides name, avatar, city, bio and visibility; receives the saved profile and delivery location.};
+\node[box, below=of profile] (compose)
+{\textbf{Letter Exchange:} provides recipient username, subject, body, language and stamp; receives letter ID, status and arrival time.};
+\node[box, below=of compose] (social)
+{\textbf{Inbox and Social Interaction:} provides searches, replies, reactions and follows; receives live letters, threads and notifications.};
+\draw[arrow] (user) -- (auth);
+\draw[arrow] (auth) -- (profile);
+\draw[arrow] (profile) -- (compose);
+\draw[arrow] (compose) -- (social);
 \end{tikzpicture}
 \caption{User Profile and Interaction Overview in Yuubin}
 \label{fig:user_profile_interaction}
@@ -473,46 +436,27 @@ Yuubin also supports reply and reaction use-cases. After a delivered letter is o
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.1cm,
+    node distance=0.55cm,
     every node/.style={font=\small},
-    step/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3.2cm,
-        minimum height=0.85cm,
-        fill=lightgray
-    },
-    event/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3.2cm,
-        minimum height=0.85cm,
-        fill=accent!15
-    },
+    box/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.7cm, minimum height=0.85cm, fill=lightgray},
+    highlight/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.7cm, minimum height=0.85cm, fill=accent!15},
     arrow/.style={-{Latex}, thick}
 ]
-
-\node[event] (compose) {Sender Writes\\Letter};
-\node[step, right=1.1cm of compose] (recipient) {Selects Recipient\\and Stamp};
-\node[step, right=1.1cm of recipient] (send) {Letter Stored\\in Database};
-\node[step, below=1.2cm of send] (delivery) {Delivery Time\\Calculated};
-\node[step, left=1.1cm of delivery] (transit) {Receiver Sees\\In Transit};
-\node[event, left=1.1cm of transit] (delivered) {Letter Delivered\\and Opened};
-\node[step, below=1.2cm of delivered] (interaction) {Reply, React\\or Follow};
-\node[step, right=1.1cm of interaction] (updates) {Realtime Updates\\and Notifications};
-
-\draw[arrow] (compose) -- (recipient);
-\draw[arrow] (recipient) -- (send);
-\draw[arrow] (send) -- (delivery);
-\draw[arrow] (delivery) -- (transit);
-\draw[arrow] (transit) -- (delivered);
-\draw[arrow] (delivered) -- (interaction);
-\draw[arrow] (interaction) -- (updates);
-
+\node[highlight] (login) {\textbf{1. Sign in:} credentials and hCaptcha are validated; Supabase returns a session and JWT.};
+\node[box, below=of login] (submit) {\textbf{2. Submit letter:} recipient username, subject, content, language, stamp ID and Bearer JWT are sent.};
+\node[box, below=of submit] (process) {\textbf{3. Validate and store:} API verifies access, recipient, cities and stamp balance, then stores the letter transaction.};
+\node[box, below=of process] (transit) {\textbf{4. Return delivery data:} sender receives letter ID, in-transit status, estimated arrival and progress data.};
+\node[box, below=of transit] (arrival) {\textbf{5. Complete delivery:} scheduled processing sets delivered status and stores an in-app notification.};
+\node[highlight, below=of arrival] (receiver) {\textbf{6. Notify receiver:} Realtime refreshes the inbox, Resend sends email, and the letter becomes readable.};
+\node[box, below=of receiver] (thread) {\textbf{7. Continue interaction:} authenticated replies and reactions are stored and broadcast through Realtime.};
+\draw[arrow] (login) -- (submit);
+\draw[arrow] (submit) -- (process);
+\draw[arrow] (process) -- (transit);
+\draw[arrow] (transit) -- (arrival);
+\draw[arrow] (arrival) -- (receiver);
+\draw[arrow] (receiver) -- (thread);
 \end{tikzpicture}
 \caption{Letter Sending and Delivery Use-case Flow}
 \label{fig:letter_delivery_flow}
@@ -544,49 +488,30 @@ Yuubin follows a \textbf{serverless full-stack layered architecture}. The fronte
 
 \subsection{Architecture model}
 
-The architecture model separates user interface, backend logic, authentication, database storage, realtime updates, and monitoring. The browser handles interface rendering, local interaction, form input, theme selection, and progress display. Next.js API routes handle secure operations and communicate with Supabase using server-side credentials where needed. Supabase stores persistent data and broadcasts changes to subscribed clients. Sentry captures production errors for frontend and backend monitoring.
+The architecture model separates user interface, backend logic, authentication, database storage, realtime updates, email delivery, scheduled processing, and monitoring. The browser handles interface rendering, local interaction, form input, theme selection, and progress display. Next.js API routes verify the JWT access token before performing protected operations and communicate with Supabase through server-side credentials where needed. Supabase stores persistent data and broadcasts changes to subscribed clients. Supabase Cron finalizes letters whose arrival time has passed, Resend sends optional arrival emails, and Sentry captures production errors for frontend and backend monitoring.
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.2cm,
+    node distance=0.6cm,
     every node/.style={font=\small},
-    layer/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=5cm,
-        minimum height=0.9cm,
-        fill=lightgray
-    },
-    service/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=4.5cm,
-        minimum height=0.85cm,
-        fill=accent!15
-    },
+    layer/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.7cm, minimum height=0.9cm, fill=lightgray},
+    active/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.7cm, minimum height=0.9cm, fill=accent!15},
     arrow/.style={-{Latex}, thick}
 ]
-
-\node[layer] (client) {\textbf{Client Layer}\\Next.js Pages, React UI, Themes};
-\node[layer, below=1cm of client] (api) {\textbf{API Layer}\\Next.js Route Handlers};
-\node[service, below left=1cm and 1cm of api] (auth) {\textbf{Authentication}\\Supabase Auth};
-\node[service, below=1cm of api] (db) {\textbf{Database}\\Supabase PostgreSQL};
-\node[service, below right=1cm and 1cm of api] (rt) {\textbf{Realtime}\\Supabase Realtime};
-\node[service, below=1.2cm of db] (monitor) {\textbf{Monitoring}\\Sentry};
-
+\node[active] (client) {\textbf{Client Layer}\Input: form data and user actions. Output: rendered pages, loading states, notifications and live updates.};
+\node[layer, below=of client] (api) {\textbf{Next.js Application and API Layer}\Input: HTTPS requests and Bearer JWT. Output: validated JSON responses and business-rule results.};
+\node[layer, below=of api] (auth) {\textbf{Supabase Authentication}\Input: credentials or JWT. Output: session, user ID, claims, confirmation and password-reset email.};
+\node[layer, below=of auth] (database) {\textbf{Supabase PostgreSQL}\Input: secure queries and transactions. Output: users, letters, delivery state, stamps, replies and notifications.};
+\node[layer, below=of database] (realtime) {\textbf{Realtime and Scheduled Processing}\Database changes are broadcast to clients; Cron finalizes letters whose delivery time has passed.};
+\node[layer, below=of realtime] (external) {\textbf{External Operations}\Resend sends arrival email, Sentry records errors, and Vercel hosts the application and API routes.};
 \draw[arrow] (client) -- (api);
 \draw[arrow] (api) -- (auth);
-\draw[arrow] (api) -- (db);
-\draw[arrow] (db) -- (rt);
-\draw[arrow] (rt) -- (client);
-\draw[arrow] (api) -- (monitor);
-\draw[arrow] (client) -- (monitor);
-
+\draw[arrow] (auth) -- (database);
+\draw[arrow] (database) -- (realtime);
+\draw[arrow] (realtime) -- (external);
 \end{tikzpicture}
 \caption{Yuubin Serverless Full-Stack Architecture}
 \label{fig:yuubin_architecture}
@@ -657,38 +582,23 @@ At the system level, a user can send many letters and receive many letters. Each
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1.1cm,
+    node distance=0.65cm,
     every node/.style={font=\small},
-    entity/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3cm,
-        minimum height=0.85cm,
-        fill=lightgray
-    },
+    entity/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.85cm, fill=lightgray},
+    core/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.85cm, fill=accent!15},
     relation/.style={-{Latex}, thick}
 ]
-
-\node[entity] (users) {\textbf{users}};
-\node[entity, right=2.2cm of users] (letters) {\textbf{letters}};
-\node[entity, below=1cm of letters] (comments) {\textbf{letter\_comments}};
-\node[entity, above=1cm of letters] (reactions) {\textbf{letter\_reactions}};
-\node[entity, below=1cm of users] (stamps) {\textbf{user\_stamps}};
-\node[entity, above=1cm of users] (follows) {\textbf{user\_follows}};
-\node[entity, right=2.2cm of letters] (notifications) {\textbf{notifications}};
-\node[entity, below=1cm of notifications] (cities) {\textbf{cities}};
-
-\draw[relation] (users) -- node[above]{sender/receiver} (letters);
-\draw[relation] (letters) -- (comments);
-\draw[relation] (letters) -- (reactions);
-\draw[relation] (users) -- (stamps);
-\draw[relation] (users) -- (follows);
-\draw[relation] (letters) -- (notifications);
-\draw[relation] (users) -- (notifications);
-\draw[relation] (users) -- (cities);
-
+\node[core] (users) {\textbf{users}\Referenced by sender, receiver, profile owner, follower and notification recipient identifiers.};
+\node[entity, below=of users] (letters) {\textbf{letters}\Each row belongs to one sender and one receiver and stores content, stamp ID and delivery timestamps.};
+\node[entity, below=of letters] (interaction) {\textbf{letter\_comments and letter\_reactions}\Multiple replies and reactions reference one letter and the authenticated user who created them.};
+\node[entity, below=of interaction] (social) {\textbf{user\_follows and user\_stamps}\Store follower relationships and each user's available stamp quantities.};
+\node[entity, below=of social] (support) {\textbf{notifications and cities}\Notifications reference users and letters; city records provide country, continent, timezone and coordinates.};
+\draw[relation] (users) -- (letters);
+\draw[relation] (letters) -- (interaction);
+\draw[relation] (interaction) -- (social);
+\draw[relation] (social) -- (support);
 \end{tikzpicture}
 \caption{System Level Data Model of Yuubin}
 \label{fig:data_model}
@@ -724,7 +634,8 @@ Supabase PostgreSQL & Stores users, letters, cities, stamps, notifications, foll
 Supabase Realtime & Sends database change events to active clients for live UI updates. \\
 Vercel & Hosts the Next.js application and runs serverless API routes. \\
 Sentry & Captures frontend, backend, and API route errors for production monitoring. \\
-Email Service / Supabase Email & Sends account-related emails and delivery-related notifications. \\
+Supabase Auth Email & Sends account confirmation and password-reset emails. \\
+Resend & Sends optional application email when a delayed letter reaches the recipient. \\
 GitHub & Stores source code, supports version control, and enables project collaboration. \\
 \bottomrule
 \end{longtable}
@@ -750,50 +661,29 @@ This subsystem does not directly handle user account creation, city dataset impo
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=1cm,
+    node distance=0.55cm,
     every node/.style={font=\small},
-    block/.style={
-        rectangle,
-        draw,
-        rounded corners,
-        align=center,
-        minimum width=3.1cm,
-        minimum height=0.8cm,
-        fill=lightgray
-    },
-    decision/.style={
-        diamond,
-        draw,
-        aspect=2,
-        align=center,
-        fill=accent!15
-    },
+    box/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.7cm, minimum height=0.85cm, fill=lightgray},
+    highlight/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.7cm, minimum height=0.85cm, fill=accent!15},
     arrow/.style={-{Latex}, thick}
 ]
-
-\node[block] (compose) {Compose Letter};
-\node[block, right=1cm of compose] (recipient) {Select Recipient\\Username Search};
-\node[block, right=1cm of recipient] (stamp) {Select Stamp};
-\node[decision, below=1cm of recipient] (valid) {Valid\\Request?};
-\node[block, below=1cm of valid] (store) {Store Letter\\and Deduct Stamp};
-\node[block, left=1cm of store] (delivery) {Calculate\\Delivery Time};
-\node[block, right=1cm of store] (notify) {Create\\Notification};
-\node[block, below=1cm of store] (receiver) {Receiver Inbox\\In Transit};
-\node[decision, below=1cm of receiver] (arrived) {Delivery\\Time Passed?};
-\node[block, below=1cm of arrived] (open) {Open Letter\\Reply/React};
-
-\draw[arrow] (compose) -- (recipient);
-\draw[arrow] (recipient) -- (stamp);
-\draw[arrow] (stamp) |- (valid);
-\draw[arrow] (valid) -- node[right]{Yes} (store);
-\draw[arrow] (valid.west) -- ++(-1,0) node[left]{No};
-\draw[arrow] (store) -- (delivery);
-\draw[arrow] (store) -- (notify);
-\draw[arrow] (store) -- (receiver);
-\draw[arrow] (receiver) -- (arrived);
-\draw[arrow] (arrived) -- node[right]{Yes} (open);
-\draw[arrow] (arrived.east) -- ++(1,0) node[right]{Wait};
-
+\node[highlight] (input) {\textbf{Compose input}\Recipient username, language, subject, body and stamp ID.};
+\node[box, below=of input] (request) {\textbf{Authenticated request}\POST request contains JSON data and the Supabase Bearer JWT.};
+\node[box, below=of request] (verify) {\textbf{Server validation}\Verify JWT, resolve recipient, reject self-send, load both cities and confirm stamp inventory.};
+\node[box, below=of verify] (transaction) {\textbf{Database transaction}\Insert letter, save delivery times, transfer the stamp and create the transit notification. Invalid input returns an HTTP error without database changes.};
+\node[box, below=of transaction] (sender) {\textbf{Sender response}\Return 201 Created, letter ID, delivery rule and estimated arrival.};
+\node[box, below=of sender] (transit) {\textbf{Receiver before arrival}\Show sealed metadata and realtime progress while withholding the letter content.};
+\node[box, below=of transit] (delivery) {\textbf{Delivery completion}\Cron stores delivered\_at, creates the arrival notification and requests Resend email.};
+\node[highlight, below=of delivery] (open) {\textbf{Receiver after arrival}\Realtime refreshes the inbox and enables reading, replying and reacting.};
+\draw[arrow] (input) -- (request);
+\draw[arrow] (request) -- (verify);
+\draw[arrow] (verify) -- (transaction);
+\draw[arrow] (transaction) -- (sender);
+\draw[arrow] (sender) -- (transit);
+\draw[arrow] (transit) -- (delivery);
+\draw[arrow] (delivery) -- (open);
 \end{tikzpicture}
 \caption{Letter Exchange Subsystem Flow Diagram}
 \label{fig:letter_exchange_subsystem}
@@ -867,6 +757,237 @@ Performance depends on API response time, Supabase query speed, realtime connect
 The subsystem was designed according to the postal theme of Yuubin. Therefore, letters are intentionally delayed instead of being delivered instantly. The UI must support both English and Urdu text direction. The system must protect user privacy by avoiding email exposure in recipient search. It must also keep stamp inventory consistent when letters are sent and received. Since the application uses a serverless deployment model, backend logic must remain suitable for Next.js API routes and managed Supabase services.
 
 \clearpage
+
+\chapter{Behavioral Module Description}
+
+This chapter describes the dynamic behavior of \textbf{Yuubin}. While the previous chapters explained the system structure, modules, interfaces, and data objects, this chapter explains how the system reacts to user actions, scheduled events, authentication changes, database updates, and failures. The behavioral description focuses on events, system states, state transitions, and the controls that protect the letter exchange workflow.
+
+\section{Description for system behavior}
+
+Yuubin is an event-driven web application. Its behavior begins when a user performs an action such as signing in, searching for a recipient, saving a draft, sending a letter, opening a delivered letter, replying, reacting, following a user, or changing settings. Other behavior is triggered without direct user input, including Supabase Realtime database events, session expiration, scheduled delivery synchronization, browser notification events, and Resend email delivery.
+
+For protected operations, the browser sends the Supabase JWT access token in the Authorization header. The Next.js API route validates the token, identifies the authenticated user, validates request data, executes the required database operation, and returns a JSON response. The frontend then changes its visual state according to the response. Successful database changes may also produce realtime events that update another active user without requiring a page refresh.
+
+\subsection{Events/interrupts}
+
+An event is an action or condition that causes Yuubin to perform processing or change state. An interrupt is an unexpected event that temporarily stops the normal flow, such as an invalid session, network failure, missing database record, insufficient stamp balance, or unavailable external service.
+
+\begin{longtable}{p{3.2cm} p{4cm} p{6.5cm}}
+\caption{Major Events and Interrupts in Yuubin}
+\label{tab:behavior_events}\\
+\toprule
+\textbf{Event/Interrupt} & \textbf{Input or Trigger} & \textbf{System Behavior and Output} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Event/Interrupt} & \textbf{Input or Trigger} & \textbf{System Behavior and Output} \\
+\midrule
+\endhead
+User signup & Full name, email, password, selected city, accepted terms, and hCaptcha token & Supabase Auth validates the request, creates the account, and sends a confirmation email. The user receives either a confirmation message or a validation error. \\
+User login & Email, password, hCaptcha token, and remember-me choice & Supabase Auth returns a session containing a JWT access token. The frontend stores the session according to the remember-me choice and opens the protected application. \\
+Protected API request & JSON request data and Bearer JWT & The API validates the JWT and user identity. A successful request returns JSON data; an invalid or missing token returns HTTP 401, while unauthorized access returns HTTP 403. \\
+Recipient search & Partial username text & The server searches active users by username, excludes the current user, and returns matching usernames and avatars without exposing email addresses. \\
+Draft save & Subject, body, recipient, language, stamp ID, and JWT & The draft is inserted or updated in the letters table and the frontend receives the saved draft ID. \\
+Letter send & Recipient ID, subject, content, language, stamp ID, and JWT & The server validates the sender, recipient, city information, and stamp inventory. It calculates delivery time, stores the letter, transfers the stamp, and returns the letter ID and estimated arrival. \\
+Delivery timer event & Current time becomes equal to or greater than estimated delivery time & Supabase Cron calls the protected delivery endpoint. The server marks the letter delivered, creates an in-app notification, and requests a Resend arrival email when enabled. \\
+Realtime database event & Insert, update, or delete on a subscribed table & Supabase Realtime broadcasts the change and active clients refresh inbox, sent letters, notifications, replies, reactions, or stamp inventory. \\
+Letter open & Authenticated sender/receiver requests a letter ID & The sender may view the sent letter. The receiver receives sealed metadata before arrival and complete content after delivery. Unauthorized users receive HTTP 403. \\
+Reply or reaction & Letter ID, content or reaction type, and JWT & The server verifies access and delivery state, stores the interaction, creates a notification where required, and broadcasts the update through Realtime. \\
+Session expiration & Invalid, missing, or expired JWT & Protected processing stops, the API returns HTTP 401, and the frontend redirects the user to the login page. \\
+Network/API failure & Fetch failure, timeout, or external-service error & Loading stops, a theme-aware error message is shown, Sentry records unexpected production errors, and the user may retry the operation. \\
+Email-service failure & Resend rejects or cannot process the request & Letter delivery remains successful because email is a secondary notification. The failure is logged and can be retried by the scheduled delivery process. \\
+\bottomrule
+\end{longtable}
+
+\subsection{States}
+
+The system uses multiple states to control authentication, page loading, letter delivery, read status, requests, and notifications. The most important behavioral state is the letter state because it determines what the sender and receiver can see and what actions are available.
+
+\begin{longtable}{p{3.2cm} p{4cm} p{6.5cm}}
+\caption{Important Behavioral States in Yuubin}
+\label{tab:behavior_states}\\
+\toprule
+\textbf{State Group} & \textbf{States} & \textbf{Meaning} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{State Group} & \textbf{States} & \textbf{Meaning} \\
+\midrule
+\endhead
+Authentication & Logged out, authenticating, authenticated, session expired & Controls whether the user can access protected pages and APIs. \\
+API request & Idle, loading, success, validation error, server error & Controls spinners, disabled buttons, returned data, and toast feedback. \\
+Letter creation & Empty, editing, draft saved, sending, sent, failed & Represents the composition process before a letter enters delivery. \\
+Letter delivery & Draft, in transit, delivered & Controls delivery progress and whether the receiver may read the content. \\
+Letter visibility & Sealed, readable & A receiver sees sealed metadata during transit; complete content becomes readable after delivery. \\
+Read status & Unread, read & Delivered letters begin as unread and change to read when the receiver opens them. \\
+Notification & Unread, read, dismissed & Controls the notification badge and notification-center display. \\
+Realtime connection & Connecting, subscribed, disconnected, reconnecting & Determines whether active pages receive database updates immediately. \\
+Email notification & Pending, sent, skipped, failed & Records whether arrival email was delivered, disabled by the user, or failed. \\
+Profile visibility & Public, private & Determines whether the profile appears on the Explore page. \\
+\bottomrule
+\end{longtable}
+
+\section{State Transition Diagrams}
+
+The following diagrams describe the two most important behavioral flows: authentication/session control and delayed letter delivery.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.65cm,
+    every node/.style={font=\small},
+    state/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.85cm, fill=lightgray},
+    active/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.85cm, fill=accent!15},
+    arrow/.style={-{Latex}, thick}
+]
+\node[state] (loggedout) {\textbf{Logged Out}\The visitor can open authentication pages but cannot access protected application data.};
+\node[state, below=of loggedout] (authenticating) {\textbf{Authenticating}\Email, password and hCaptcha are submitted to Supabase Auth.};
+\node[active, below=of authenticating] (result) {\textbf{Authentication Result}\Valid credentials return a JWT session; invalid credentials return an error and remain logged out.};
+\node[state, below=of result] (protected) {\textbf{Authenticated Application}\Protected API requests include the Bearer JWT and receive authorized JSON responses.};
+\node[state, below=of protected] (expired) {\textbf{Session Expired or Logout Requested}\The session is removed, protected APIs return HTTP 401, and private data is cleared from the interface.};
+\node[active, below=of expired] (returnlogin) {\textbf{Return to Login}\The user may authenticate again and start a new session.};
+\draw[arrow] (loggedout) -- (authenticating);
+\draw[arrow] (authenticating) -- (result);
+\draw[arrow] (result) -- (protected);
+\draw[arrow] (protected) -- (expired);
+\draw[arrow] (expired) -- (returnlogin);
+\end{tikzpicture}
+\caption{Authentication and Session State Transition Diagram}
+\label{fig:authentication_state_transition}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.6cm,
+    every node/.style={font=\small},
+    state/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.85cm, fill=lightgray},
+    active/.style={rectangle, draw, rounded corners, align=left,
+        text width=10.5cm, minimum height=0.85cm, fill=accent!15},
+    arrow/.style={-{Latex}, thick}
+]
+\node[state] (editing) {\textbf{Editing}\The sender writes content. Saving creates or updates a draft without starting delivery.};
+\node[state, below=of editing] (validating) {\textbf{Validating Send Request}\The API checks JWT, recipient, self-send rule, city data, required fields and stamp inventory.};
+\node[state, below=of validating] (result) {\textbf{Validation Result}\Invalid input returns an error with no transaction; valid input stores the letter and transfers the selected stamp.};
+\node[active, below=of result] (transit) {\textbf{In Transit}\The sender can view the letter; the receiver sees sealed metadata, estimated arrival and live progress.};
+\node[state, below=of transit] (delivered) {\textbf{Delivered}\Scheduled processing stores delivered\_at, creates a notification and optionally sends the Resend email.};
+\node[active, below=of delivered] (readable) {\textbf{Readable}\The receiver can open the complete content; opening changes unread state to read.};
+\node[state, below=of readable] (interactive) {\textbf{Read and Interactive}\Authorized users can add nested replies and reactions, which update through Supabase Realtime.};
+\draw[arrow] (editing) -- (validating);
+\draw[arrow] (validating) -- (result);
+\draw[arrow] (result) -- (transit);
+\draw[arrow] (transit) -- (delivered);
+\draw[arrow] (delivered) -- (readable);
+\draw[arrow] (readable) -- (interactive);
+\end{tikzpicture}
+\caption{Letter Lifecycle State Transition Diagram}
+\label{fig:letter_state_transition}
+\end{figure}
+
+\section{Control specification}
+
+Control specification defines the rules that determine whether an event is accepted, rejected, delayed, retried, or allowed to change system state. These controls are implemented in the frontend, Next.js API routes, Supabase Auth, PostgreSQL functions, database constraints, scheduled jobs, and realtime subscriptions.
+
+\begin{longtable}{p{3.5cm} p{4.5cm} p{5.7cm}}
+\caption{Yuubin Control Specification}
+\label{tab:control_specification}\\
+\toprule
+\textbf{Control} & \textbf{Condition} & \textbf{Action/Response} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Control} & \textbf{Condition} & \textbf{Action/Response} \\
+\midrule
+\endhead
+Authentication control & Protected route or API is requested & Validate the Supabase JWT. Continue for the authenticated user; otherwise return 401 and redirect to login. \\
+Authorization control & Letter, notification, profile, or inventory data is requested & Compare the authenticated user ID with the resource owner, sender, or recipient. Return 403 when access is not allowed. \\
+Input validation control & Required fields are missing or invalid & Reject the request with HTTP 400 and return a readable validation message without changing database state. \\
+Duplicate-account control & Signup email already exists & Supabase Auth and the unique email constraint reject duplicate registration. \\
+Recipient privacy control & User searches for a recipient & Search by username only, hide email addresses, exclude inactive users, and exclude the logged-in user. \\
+Self-send control & Sender ID equals recipient ID & Reject the send operation before letter creation. \\
+Stamp inventory control & Selected stamp quantity is zero & Reject sending. For a valid send, transfer one stamp within the database transaction. \\
+Delivery control & Current time is earlier than estimated delivery time & Keep status in transit, calculate progress below 100 percent, and return sealed content to the receiver. \\
+Arrival control & Current time reaches estimated delivery time & Set status to delivered, store delivered\_at, create notification, and make content readable. \\
+Email preference control & Arrival email setting is disabled & Skip Resend email while preserving letter delivery and in-app notification. \\
+Idempotency control & Delivery email or notification was already processed & Use the letter ID and internal marker to prevent duplicate delivery emails and duplicate arrival notifications. \\
+Realtime control & Relevant table changes while a user is subscribed & Broadcast the database event and refresh the affected UI state. Polling remains available as a fallback for delivery progress. \\
+Error-monitoring control & Unexpected frontend or server exception occurs in production & Capture diagnostic information in Sentry without exposing service-role credentials or private letter content. \\
+Accessibility control & User selects Urdu or enlarged text & Translate supported static text, preserve the chosen layout direction, increase root font scale, and keep the sidebar internally scrollable. \\
+\bottomrule
+\end{longtable}
+
+The behavioral controls ensure that Yuubin remains secure and predictable even when multiple events occur at the same time. Authentication and authorization prevent unauthorized access, atomic database operations preserve stamp and letter consistency, delayed-delivery controls maintain the core project concept, and realtime plus scheduled processing keep the user interface synchronized with persistent database state.
+
+\newpage
+
+\chapter{System Prototype Modeling and Simulation Results}
+
+\section{Description of system modeling approach (if used)}
+
+Yuubin was modeled as a working full-stack web prototype rather than only a static design. The prototype follows a serverless web application model in which the user interface is built with Next.js and React, backend operations are handled through Next.js API routes, and persistent data is stored in Supabase PostgreSQL. Supabase Auth manages user identity and JWT-based sessions, while Supabase Realtime is used for live updates such as replies, reactions, notifications, and letter progress changes.
+
+The system model was divided into smaller functional flows during development. These flows included user registration, login, profile setup, city selection, letter composition, draft saving, stamp selection, delayed delivery, inbox display, sent letters, nested replies, reactions, public profile discovery, notification handling, and accessibility preferences. Each flow was tested as an individual prototype feature and then connected with the complete application.
+
+The prototype also modeled the delayed letter delivery concept using real database fields such as sent time, estimated delivery time, delivery status, and delivered time. Instead of delivering every letter instantly, the system calculates an arrival time based on sender and receiver city information. Before arrival, the receiver can see limited sealed-letter metadata and progress. After arrival, the full letter becomes readable and notification events are generated.
+
+\section{Simulation results}
+
+Simulation was performed by creating test users, selecting different cities, sending letters between accounts, saving drafts, opening delivered letters, adding replies, reacting to letters, and checking notification behavior. The main purpose of the simulation was to confirm that the system behaves correctly for both sender and receiver under normal and special conditions.
+
+\begin{longtable}{p{4cm} p{5cm} p{5cm}}
+\caption{Yuubin Prototype Simulation Results}
+\label{tab:prototype_simulation_results}\\
+\toprule
+\textbf{Test Scenario} & \textbf{Expected Result} & \textbf{Observed Result} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Test Scenario} & \textbf{Expected Result} & \textbf{Observed Result} \\
+\midrule
+\endhead
+User signup with valid data & Account is created, city is saved, and profile is initialized & Signup completed successfully with required profile data. \\
+Duplicate email signup & System rejects repeated email registration & Duplicate signup is blocked by application logic and database constraint. \\
+Login with correct credentials & Supabase returns a valid session and JWT token & User is redirected to the protected application area. \\
+Login with invalid credentials & System displays an error and no session is created & Error toast appears and protected pages remain unavailable. \\
+City search & Relevant city options are returned quickly & City suggestions are displayed from the optimized cities table. \\
+Save draft & Letter is stored without sending & Draft appears in the drafts page and can be reopened. \\
+Send letter with stamp & Letter is created and selected stamp quantity is reduced & Sender inventory decreases and receiver inventory is updated after delivery logic. \\
+Send letter to self & System rejects the request & Self-send is blocked before creating the letter. \\
+Letter in transit & Receiver sees progress but cannot read full content & Sealed delivery view is shown until estimated arrival time. \\
+Delivered letter & Receiver can open full letter content & Letter becomes readable after delivery time passes. \\
+Nested reply & Reply appears under the selected letter or comment & Threaded comments are stored and displayed. \\
+Reaction & User can react to a readable letter & Reaction state is saved and reflected in the interface. \\
+Realtime update & UI refreshes without manual reload & Supabase Realtime updates subscribed pages. \\
+Profile public/private setting & Public users appear in Explore; private users remain hidden & Explore shows only public profiles. \\
+Urdu language mode & Main static text changes to Urdu & Supported interface text is translated while preserving layout usability. \\
+Text size setting & Interface becomes easier to read & Larger text mode improves readability for low-vision users. \\
+\bottomrule
+\end{longtable}
+
+The simulation results show that the prototype supports the main requirements of the project. Authentication, profile management, delayed delivery, drafts, stamps, notifications, replies, reactions, public discovery, accessibility settings, and realtime behavior were all tested through the working application. Minor limitations remain in areas that depend on external services, such as production email delivery domain verification and long-term monitoring.
+
+\section{Special performance issues}
+
+The most important performance issue in Yuubin is the city search feature because the cities dataset contains many records. Searching a large table without indexes can make signup and profile setup slow. To reduce this issue, the cities table uses searchable fields and database indexes so that username and city suggestions can be returned faster.
+
+Another performance concern is realtime activity. Realtime subscriptions are useful for replies, reactions, notifications, and letter progress, but unnecessary subscriptions can increase client-side work and database event traffic. For this reason, realtime listeners should be limited to the pages and tables that currently need live updates.
+
+Delayed delivery also requires careful handling. If the frontend alone decides delivery status, users may see inconsistent results across devices. Yuubin therefore stores delivery-related values in the database and uses scheduled processing to mark letters as delivered when the delivery time passes. This keeps the system more consistent.
+
+The application also depends on external services such as Supabase, Sentry, hCaptcha, and Resend. Network instability or external service downtime can affect login, signup, email notification, and monitoring. The prototype handles these cases by showing clear toast messages, avoiding duplicate database actions, and keeping in-app notification behavior separate from optional email delivery.
+
+\section{Prototyping requirements}
+
+The prototype required a modern web development environment, a Supabase project, database tables, authentication configuration, realtime publication setup, hCaptcha configuration, Sentry project configuration, and optional Resend email configuration. The frontend required Node.js, Next.js, React, TypeScript, Tailwind CSS, reusable UI components, theme assets, avatar assets, stamp images, and public logo/favicon files.
+
+From the database side, the prototype required tables for users, letters, drafts, comments, reactions, follows, notifications, stamps, user stamp inventory, delivery tracking, and cities. It also required constraints for preventing duplicate emails, fields for delivery status and timing, profile visibility fields, and indexes for search-related data.
+
+From the user interface side, the prototype required responsive screens for landing, signup, login, forgot password, dashboard, profile, settings, compose, inbox, sent letters, drafts, stamps, explore, legal pages, privacy policy, terms of service, and release notes. Accessibility requirements included theme selection, Urdu interface support, right-to-left language handling where needed, and adjustable text size for users with eyesight issues.
+
+The final prototype demonstrates that Yuubin can operate as a practical digital letter exchange platform with delayed communication, personalization, gamified stamps, realtime interaction, and accessibility support. Further production work would include a verified email domain, deeper analytics, stronger admin tools, and larger scale testing with real users.
 
 \newpage
 % ==================================================

@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildUsersInsertRow } from '@/lib/usersSchema';
 import { DEFAULT_STAMP_ID, STARTING_COMMON_STAMPS } from '@/lib/stamps';
 
+function isUniqueViolationOn(
+  error: { code?: string; message?: string; details?: string } | null | undefined,
+  column: string,
+) {
+  if (error?.code !== '23505') return false;
+  const detail = `${error.message ?? ''} ${error.details ?? ''}`.toLowerCase();
+  return detail.includes(`(${column.toLowerCase()})`);
+}
+
 /**
  * Creates `public.users` when missing. Uses service role so RLS does not block
  * the insert; caller must prove identity via Bearer JWT (validated with anon client).
@@ -59,7 +68,14 @@ export async function POST(request: NextRequest) {
     let insertRow = buildUsersInsertRow(user);
     let { error: insertError } = await admin.from('users').insert(insertRow);
 
-    if (insertError?.code === '23505') {
+    if (isUniqueViolationOn(insertError, 'email')) {
+      return NextResponse.json(
+        { error: 'An account with this email already exists' },
+        { status: 409 },
+      );
+    }
+
+    if (isUniqueViolationOn(insertError, 'username')) {
       insertRow = {
         ...insertRow,
         username: `user_${user.id.replace(/-/g, '')}`,
