@@ -210,6 +210,18 @@ export default function SignupPage() {
         return;
       }
 
+      const returnedExistingUser =
+        data.user &&
+        Array.isArray(data.user.identities) &&
+        data.user.identities.length === 0;
+
+      if (returnedExistingUser) {
+        toast.error("An account with this email already exists. Please sign in instead.");
+        resetHCaptcha();
+        setCaptchaToken("");
+        return;
+      }
+
       // 📩 Email confirmation flow
       if (!data.session) {
         toast.success("Check your email to confirm your account");
