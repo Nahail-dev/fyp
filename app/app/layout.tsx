@@ -168,11 +168,11 @@ export default function AppLayout({
       )}
 
       {/* Sidebar */}
-      <aside className={`yuubin-sidebar yuubin-scrollbar-hidden fixed inset-y-0 ltr:left-0 rtl:right-0 z-50 lg:relative ${
-        sidebarOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full lg:translate-x-0 lg:w-20'
+      <aside className={`yuubin-sidebar yuubin-scrollbar-hidden fixed inset-y-0 left-0 z-50 lg:relative ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-20'
       } ${
         sidebarOpen ? 'w-64' : 'lg:w-20'
-      } h-screen shrink-0 overflow-y-auto overflow-x-hidden bg-card transition-all duration-300 flex flex-col ltr:border-r rtl:border-l border-border`}>
+      } h-screen shrink-0 overflow-y-auto overflow-x-hidden bg-card transition-all duration-300 flex flex-col border-r border-border`}>
         {/* Logo */}
         <div className="yuubin-sidebar-brand flex h-20 shrink-0 items-center justify-between border-b border-border px-5 md:h-24 md:px-6">
           {sidebarOpen && (
@@ -312,7 +312,7 @@ export default function AppLayout({
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="mx-3 mb-3 shrink-0 rounded-sm border border-border bg-card/70 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted md:mx-4 md:mb-4"
         >
-          {sidebarOpen ? (language === 'ur' ? '→' : '←') : (language === 'ur' ? '←' : '→')}
+          {sidebarOpen ? '←' : '→'}
         </button>
       </aside>
 
@@ -375,7 +375,7 @@ export default function AppLayout({
                 </button>
 
                 {userMenuOpen && (
-                  <div className="yuubin-menu-popover absolute ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto top-12 z-50 w-64 overflow-hidden rounded-sm border border-border bg-card shadow-2xl">
+                  <div className="yuubin-menu-popover absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-sm border border-border bg-card shadow-2xl">
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate font-serif font-bold text-foreground">
                         {user?.username || user?.full_name || t('yuubinUser')}
