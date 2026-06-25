@@ -195,7 +195,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     const isUrdu = language === 'ur';
 
     html.lang = isUrdu ? 'ur' : 'en';
-    html.dir = 'ltr';
+    html.dir = isUrdu ? 'rtl' : 'ltr';
     html.classList.toggle('yuubin-urdu-ui', isUrdu);
   }, [language]);
 
@@ -234,7 +234,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
       setTextScale,
       toggleLanguage,
       cycleTextScale,
-      isRtl: false,
+      isRtl: language === 'ur',
       t: (key) => translations[language][key] ?? key,
     };
   }, [language, textScale]);

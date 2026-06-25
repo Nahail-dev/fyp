@@ -15,7 +15,7 @@ interface ThemeLogoProps {
   textClassName?: string;
 }
 
-export function ThemeLogo({ className = '', iconOnly = false, textClassName = '' }: ThemeLogoProps) {
+export function ThemeLogo({ className = '', iconOnly = false, textClassName = 'hidden sm:inline-block' }: ThemeLogoProps) {
   const { theme } = useTheme();
 
   return (

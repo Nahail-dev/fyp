@@ -9,6 +9,7 @@ import {
   Inbox,
   LogOut,
   Mail,
+  Menu,
   Newspaper,
   PenTool,
   Send,
@@ -48,7 +49,20 @@ export default function AppLayout({
   const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useAccessibility();
+  const { t, language } = useAccessibility();
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const navLinkClass = (href: string) => {
     const isActive = href === '/app' ? pathname === href : pathname.startsWith(href);
@@ -145,20 +159,32 @@ export default function AppLayout({
 
   return (
     <div className="yuubin-app-shell flex h-screen overflow-hidden bg-background">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`yuubin-sidebar yuubin-scrollbar-hidden ${sidebarOpen ? 'w-64' : 'w-20'} h-screen shrink-0 overflow-y-auto overflow-x-hidden bg-card transition-all duration-300 flex flex-col border-r border-border`}>
+      <aside className={`yuubin-sidebar yuubin-scrollbar-hidden fixed inset-y-0 ltr:left-0 rtl:right-0 z-50 lg:relative ${
+        sidebarOpen ? 'translate-x-0' : 'ltr:-translate-x-full rtl:translate-x-full lg:translate-x-0 lg:w-20'
+      } ${
+        sidebarOpen ? 'w-64' : 'lg:w-20'
+      } h-screen shrink-0 overflow-y-auto overflow-x-hidden bg-card transition-all duration-300 flex flex-col ltr:border-r rtl:border-l border-border`}>
         {/* Logo */}
         <div className="yuubin-sidebar-brand flex h-20 shrink-0 items-center justify-between border-b border-border px-5 md:h-24 md:px-6">
           {sidebarOpen && (
             <Link href="/app" className="flex items-center gap-2">
-              <ThemeLogo className="[&_img]:h-8 [&_img]:w-14" />
+              <ThemeLogo className="[&_img]:h-8 [&_img]:w-14" textClassName="inline-block" />
             </Link>
           )}
           {!sidebarOpen && <ThemeLogo iconOnly />}
         </div>
 
         {/* Navigation */}
-        <nav className="min-h-0 flex-1 space-y-1.5 p-3 md:space-y-2 md:p-4">
+        <nav className="space-y-1.5 p-3 md:space-y-2 md:p-4">
           <Link
             href="/app"
             className={`${navLinkClass('/app')} group`}
@@ -217,7 +243,19 @@ export default function AppLayout({
         </nav>
 
         {/* Bottom Navigation */}
-        <div className="yuubin-sidebar-footer shrink-0 space-y-1.5 border-t border-border p-3 md:space-y-2 md:p-4">
+        <div className="yuubin-sidebar-footer mt-auto shrink-0 space-y-1.5 border-t border-border p-3 md:space-y-2 md:p-4">
+          {sidebarOpen && (
+            <div className="flex flex-col gap-2.5 py-3 border-b border-border mb-3 lg:hidden">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1">
+                {language === 'ur' ? 'سائز اور زبان' : 'Text Size & Language'}
+              </span>
+              <AccessibilityControls />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 pt-1">
+                {language === 'ur' ? 'تھیم منتخب کریں' : 'Choose Theme'}
+              </span>
+              <ThemeSwitcher />
+            </div>
+          )}
           {!loading && user && (
             <Link
               href="/app/profile"
@@ -274,20 +312,34 @@ export default function AppLayout({
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="mx-3 mb-3 shrink-0 rounded-sm border border-border bg-card/70 px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted md:mx-4 md:mb-4"
         >
-          {sidebarOpen ? '←' : '→'}
+          {sidebarOpen ? (language === 'ur' ? '→' : '←') : (language === 'ur' ? '←' : '→')}
         </button>
       </aside>
 
       {/* Main Content */}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="yuubin-topbar flex h-24 shrink-0 items-center border-b border-border bg-card px-8">
-          <div className="flex w-full min-w-0 items-center justify-between gap-6">
-            <ThemeLogo className="min-w-0 shrink-0" />
-            <div className="flex min-w-0 items-center justify-end gap-4">
+        <header className="yuubin-topbar flex h-24 shrink-0 items-center border-b border-border bg-card px-4 md:px-8">
+          <div className="flex w-full min-w-0 items-center justify-between gap-4 md:gap-6">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((open) => !open)}
+                className="rounded-sm border border-border p-2 text-muted-foreground hover:bg-muted/50 hover:text-foreground lg:hidden shrink-0 cursor-pointer"
+                aria-label="Toggle menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <ThemeLogo className="min-w-0 shrink-0" />
+            </div>
+            <div className="flex min-w-0 items-center justify-end gap-2 sm:gap-4">
               <NotificationCenter userId={user?.id ?? null} />
-              <AccessibilityControls />
-              <ThemeSwitcher />
+              <div className="hidden sm:block">
+                <AccessibilityControls />
+              </div>
+              <div className="hidden lg:block">
+                <ThemeSwitcher />
+              </div>
               <div className="relative">
                 <button
                   type="button"
@@ -307,7 +359,7 @@ export default function AppLayout({
                       <User className="h-4 w-4" />
                     </span>
                   )}
-                  <span className="min-w-0">
+                  <span className="min-w-0 hidden sm:block">
                     <span className="block text-xs text-muted-foreground">
                       {t('welcomeBack')}
                     </span>
@@ -323,7 +375,7 @@ export default function AppLayout({
                 </button>
 
                 {userMenuOpen && (
-                  <div className="yuubin-menu-popover absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-sm border border-border bg-card shadow-2xl">
+                  <div className="yuubin-menu-popover absolute ltr:right-0 ltr:left-auto rtl:left-0 rtl:right-auto top-12 z-50 w-64 overflow-hidden rounded-sm border border-border bg-card shadow-2xl">
                     <div className="border-b border-border px-4 py-3">
                       <p className="truncate font-serif font-bold text-foreground">
                         {user?.username || user?.full_name || t('yuubinUser')}

@@ -709,3 +709,7 @@
   border-radius: 999px;
   background: var(--yuubin-toast-accent);
 }
+
+.yuubin-urdu-ui .yuubin-sidebar {
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--primary) 10%, transparent);
+}
