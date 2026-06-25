@@ -756,7 +756,7 @@ export default function ComposePage() {
       {/* Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto postal-card p-12 relative space-y-6">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto postal-card p-6 sm:p-12 relative space-y-6">
             <button
               onClick={() => setShowPreview(false)}
               className={`absolute top-4 p-2 hover:bg-muted rounded-sm transition-colors ${isUrdu ? 'right-4' : 'left-4'}`}
@@ -781,7 +781,7 @@ export default function ComposePage() {
             </div>
 
             {/* Header */}
-            <div className={`space-y-4 border-b border-border pb-6 ${isUrdu ? 'pl-24 pt-16' : 'pr-24 pt-16'}`}>
+            <div className={`space-y-4 border-b border-border pb-6 ${isUrdu ? 'pl-6 sm:pl-24 pt-24 sm:pt-16' : 'pr-6 sm:pr-24 pt-24 sm:pt-16'}`}>
               <h2
                 dir={writingDirection}
                 className={`w-full break-words text-3xl font-bold text-foreground ${writingAlign} ${writingFont}`}
