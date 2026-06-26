@@ -15,11 +15,12 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { AppScreenLoader } from '@/components/app-screen-loader';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import { useAccessibility } from '@/components/accessibility-context';
+import { useQuery } from '@tanstack/react-query';
 
 interface UserProfile {
   id: string;
@@ -116,46 +117,40 @@ const formatDate = (dateValue: string | null | undefined, fallback: string) => {
 };
 
 export default function Dashboard() {
-  const [letters, setLetters] = useState<Letter[]>([]);
-  const [stats, setStats] = useState<Stats>(emptyStats);
-  const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
   const { t } = useAccessibility();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const [statsResponse, lettersResponse] = await Promise.all([
-          authenticatedFetch(`/api/stats?userId=${user.id}`),
-          authenticatedFetch(`/api/letters?userId=${user.id}&type=inbox`),
-        ]);
-
-        const statsData = await statsResponse.json().catch(() => emptyStats);
-        const lettersData = await lettersResponse.json().catch(() => ({ letters: [] }));
-
-        if (statsResponse.ok) {
-          setStats({ ...emptyStats, ...statsData });
-        }
-
-        if (lettersResponse.ok && lettersData.letters) {
-          setLetters(lettersData.letters.slice(0, 6));
-        }
-      } catch (error) {
-        console.error('[dashboard] Data loading failed:', error);
-      } finally {
-        setLoading(false);
+  const dashboardQuery = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        return { stats: emptyStats, letters: [] as Letter[] };
       }
-    };
 
-    fetchData();
-  }, [supabase]);
+      const [statsResponse, lettersResponse] = await Promise.all([
+        authenticatedFetch(`/api/stats?userId=${user.id}`),
+        authenticatedFetch(`/api/letters?userId=${user.id}&type=inbox`),
+      ]);
 
-  if (loading) {
+      const statsData = await statsResponse.json().catch(() => emptyStats);
+      const lettersData = await lettersResponse.json().catch(() => ({ letters: [] }));
+
+      return {
+        stats: statsResponse.ok ? { ...emptyStats, ...statsData } : emptyStats,
+        letters:
+          lettersResponse.ok && lettersData.letters
+            ? (lettersData.letters as Letter[]).slice(0, 6)
+            : [],
+      };
+    },
+  });
+
+  const stats = dashboardQuery.data?.stats ?? emptyStats;
+  const letters = dashboardQuery.data?.letters ?? [];
+
+  if (dashboardQuery.isLoading) {
     return <AppScreenLoader title={t('dashboard')} message={t('loadingYourData')} />;
   }
 

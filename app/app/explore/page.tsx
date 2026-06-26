@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Compass, User, Mail, Filter, MapPin, PenTool, UserCheck, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import { AppScreenLoader } from '@/components/app-screen-loader';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface WriterProfile {
   id: string;
@@ -25,35 +26,27 @@ interface WriterProfile {
 }
 
 export default function ExplorePage() {
-  const [writers, setWriters] = useState<WriterProfile[]>([]);
   const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busyFollowId, setBusyFollowId] = useState<string | null>(null);
   const supabase = createClient();
+  const queryClient = useQueryClient();
+  const writersQuery = useQuery({
+    queryKey: ['explore', 'writers'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const params = new URLSearchParams({ publicOnly: 'true' });
+      if (user) params.set('userId', user.id);
 
-  useEffect(() => {
-    const fetchWriters = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        const params = new URLSearchParams({ publicOnly: 'true' });
-        if (user) params.set('userId', user.id);
-
-        const response = await authenticatedFetch(`/api/users?${params.toString()}`);
-        const data = await response.json();
-        
-        if (data.users) {
-          setWriters(data.users);
-        }
-      } catch (error) {
-        console.error('[explore] Loading failed:', error);
-      } finally {
-        setLoading(false);
+      const response = await authenticatedFetch(`/api/users?${params.toString()}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to load writers');
       }
-    };
 
-    fetchWriters();
-  }, []);
+      return (data.users || []) as WriterProfile[];
+    },
+  });
+  const writers = writersQuery.data ?? [];
 
   const allInterests = Array.from(new Set(writers.flatMap(w => w.interests || [])));
 
@@ -81,7 +74,7 @@ export default function ExplorePage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return;
 
-      setWriters((current) =>
+      queryClient.setQueryData<WriterProfile[]>(['explore', 'writers'], (current = []) =>
         current.map((writer) =>
           writer.id === writerId
             ? {
@@ -100,7 +93,7 @@ export default function ExplorePage() {
     }
   };
 
-  if (loading) {
+  if (writersQuery.isLoading) {
     return (
       <AppScreenLoader title="Explore Writers" message="Loading writers..." />
     );
