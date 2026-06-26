@@ -307,7 +307,7 @@ export default function Home() {
                   </div>
 
                   <div className="text-[10px] text-muted-foreground italic text-center mt-3">
-                    "Writing with patience..."
+                    &quot;Writing with patience...&quot;
                   </div>
                 </div>
               )}
@@ -344,7 +344,7 @@ export default function Home() {
                   </div>
                   
                   <p className="mt-4 text-xs font-serif font-bold text-foreground bg-card px-3.5 py-1 rounded-full border border-border shadow-md">
-                    Attaching "Golden Route"
+                    Attaching &quot;Golden Route&quot;
                   </p>
                 </div>
               )}
@@ -403,7 +403,7 @@ export default function Home() {
                     {/* Slide-out letter note */}
                     <div className="absolute inset-x-4 top-4 bottom-3 bg-background border border-border rounded-sm p-3 transform translate-y-20 group-hover:translate-y-0 transition-transform duration-500 ease-out flex flex-col justify-between">
                       <p className="font-serif text-[10px] leading-normal text-foreground">
-                        "Dear Friend, I am glad we waited for this letter. Some words are truly worth waiting for..."
+                        &quot;Dear Friend, I am glad we waited for this letter. Some words are truly worth waiting for...&quot;
                       </p>
                       <p className="text-right text-[9px] text-primary font-bold">- Nahail</p>
                     </div>

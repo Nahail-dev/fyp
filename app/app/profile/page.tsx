@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient, resetBrowserClient } from '@/lib/supabaseClient';
 import { User, Mail, Pencil, X, Save, LogOut, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -63,9 +64,7 @@ async function getApiProfile(
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -78,81 +77,95 @@ export default function ProfilePage() {
   const [isSearchingCities, setIsSearchingCities] = useState(false);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const supabase = createClient();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const profileQuery = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-        if (authError || !user) {
-          router.push('/auth/login');
-          return;
+      if (authError || !user) {
+        throw new Error('AUTH_REQUIRED');
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      let result = await getApiProfile(token);
+
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
+
+      if ('notFound' in result) {
+        if (!token) {
+          throw new Error('Not authenticated');
         }
-
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-
-        let result = await getApiProfile(token);
-
+        const ensureRes = await fetch('/api/profile/ensure', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!ensureRes.ok) {
+          const errBody = await ensureRes.json().catch(() => ({}));
+          throw new Error(
+            typeof errBody === 'object' &&
+              errBody &&
+              'error' in errBody &&
+              typeof (errBody as { error: string }).error === 'string'
+              ? (errBody as { error: string }).error
+              : 'Could not create your profile',
+          );
+        }
+        result = await getApiProfile(token);
         if ('error' in result) {
           throw new Error(result.error);
         }
-
         if ('notFound' in result) {
-          if (!token) {
-            throw new Error('Not authenticated');
-          }
-          const ensureRes = await fetch('/api/profile/ensure', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!ensureRes.ok) {
-            const errBody = await ensureRes.json().catch(() => ({}));
-            throw new Error(
-              typeof errBody === 'object' &&
-                errBody &&
-                'error' in errBody &&
-                typeof (errBody as { error: string }).error === 'string'
-                ? (errBody as { error: string }).error
-                : 'Could not create your profile',
-            );
-          }
-          result = await getApiProfile(token);
-          if ('error' in result) {
-            throw new Error(result.error);
-          }
-          if ('notFound' in result) {
-            throw new Error(
-              'Profile still missing after create. Check Supabase users table and ensure route logs.',
-            );
-          }
+          throw new Error(
+            'Profile still missing after create. Check Supabase users table and ensure route logs.',
+          );
         }
-
-        const data = 'profile' in result ? result.profile : null;
-        if (!data) {
-          throw new Error('No profile row');
-        }
-
-        setProfile(data);
-        setFormData({
-          full_name: data.full_name,
-          bio: data.bio || '',
-          interests: Array.isArray(data.interests) ? data.interests.join(', ') : '',
-        });
-        setSelectedAvatarUrl(data.avatar_url);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to load profile';
-        console.error('[profile] Loading failed:', message, error);
-        toast.error(message);
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    fetchProfile();
-  }, []);
+      if (!('profile' in result)) {
+        throw new Error('No profile row');
+      }
 
+      return result.profile;
+    },
+  });
+
+  const profile = profileQuery.data ?? null;
+
+  useEffect(() => {
+    if (!profileQuery.error) return;
+    const message =
+      profileQuery.error instanceof Error
+        ? profileQuery.error.message
+        : 'Failed to load profile';
+    if (message === 'AUTH_REQUIRED') {
+      router.push('/auth/login');
+      return;
+    }
+    console.error('[profile] Loading failed:', message, profileQuery.error);
+    toast.error(message);
+  }, [profileQuery.error, router]);
+
+  useEffect(() => {
+    if (!profile || isEditing) return;
+    setFormData({
+      full_name: profile.full_name,
+      bio: profile.bio || '',
+      interests: Array.isArray(profile.interests) ? profile.interests.join(', ') : '',
+    });
+    setSelectedAvatarUrl(profile.avatar_url);
+  }, [isEditing, profile]);
   useEffect(() => {
     if (!profile?.city_uuid_id) {
       setSelectedCity(null);
@@ -251,7 +264,7 @@ export default function ProfilePage() {
       }
 
       const updatedProfile = (await res.json()) as UserProfile;
-      setProfile(updatedProfile);
+      queryClient.setQueryData(['profile'], updatedProfile);
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (error) {
@@ -279,7 +292,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (profileQuery.isLoading) {
     return (
       <AppScreenLoader title="Profile" message="Loading your profile..." />
     );

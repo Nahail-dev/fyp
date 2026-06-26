@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
 import { Award, Lock, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { STAMPS, type StampRarity } from '@/lib/stamps';
 import { AppScreenLoader } from '@/components/app-screen-loader';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface Stamp {
   id: string;
@@ -45,53 +46,52 @@ const getRarityBgColor = (rarity: StampRarity) => {
   }
 };
 
+const fallbackStamps: Stamp[] = STAMPS.map((stamp) => ({
+  ...stamp,
+  image_url: stamp.image,
+  obtained: stamp.rarity === 'common',
+  count: stamp.rarity === 'common' ? 1 : 0,
+}));
+
+function normalizeStamp(
+  stamp: Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon'; image?: string },
+) {
+  const rarity = stamp.rarity === 'uncommon' ? 'epic' : stamp.rarity;
+  return {
+    ...stamp,
+    rarity,
+    image_url: stamp.image_url || stamp.image,
+  } as Stamp;
+}
+
 export default function StampsPage() {
-  const [stamps, setStamps] = useState<Stamp[]>(
-    STAMPS.map((stamp) => ({
-      ...stamp,
-      image_url: stamp.image,
-      obtained: stamp.rarity === 'common',
-      count: stamp.rarity === 'common' ? 1 : 0,
-    })),
-  );
-  const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const supabase = createClient();
-
-  const loadStamps = async (userId: string) => {
-    const response = await authenticatedFetch(`/api/stamps?userId=${userId}&type=collected`);
-    const data = await response.json();
-
-    if (data.stamps) {
-      setStamps(
-        data.stamps.map((stamp: Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon'; image?: string }) => {
-          const rarity = stamp.rarity === 'uncommon' ? 'epic' : stamp.rarity;
-          return {
-            ...stamp,
-            rarity,
-            image_url: stamp.image_url || stamp.image,
-          };
-        })
-      );
-    }
-  };
-
-  useEffect(() => {
-    const fetchStamps = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        setCurrentUserId(user.id);
-        await loadStamps(user.id);
-      } catch (error) {
-        console.error('[stamps] Loading failed:', error);
-      } finally {
-        setLoading(false);
+  const queryClient = useQueryClient();
+  const stampsQuery = useQuery<{ userId: string | null; stamps: Stamp[] }>({
+    queryKey: ['stamps', 'collection'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return { userId: null, stamps: fallbackStamps };
       }
-    };
 
-    fetchStamps();
-  }, []);
+      const response = await authenticatedFetch(`/api/stamps?userId=${user.id}&type=collected`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to load stamps');
+      }
+
+      return {
+        userId: user.id,
+        stamps: data.stamps
+          ? (data.stamps as Array<Omit<Stamp, 'rarity'> & { rarity: StampRarity | 'uncommon'; image?: string }>).map(normalizeStamp)
+          : fallbackStamps,
+      };
+    },
+  });
+
+  const currentUserId = stampsQuery.data?.userId ?? null;
+  const stamps = stampsQuery.data?.stamps ?? fallbackStamps;
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -107,7 +107,7 @@ export default function StampsPage() {
           filter: `user_id=eq.${currentUserId}`,
         },
         () => {
-          void loadStamps(currentUserId);
+          void queryClient.invalidateQueries({ queryKey: ['stamps', 'collection'] });
         },
       )
       .subscribe();
@@ -115,9 +115,9 @@ export default function StampsPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [currentUserId]);
+  }, [currentUserId, queryClient, supabase]);
 
-  if (loading) {
+  if (stampsQuery.isLoading) {
     return (
       <AppScreenLoader title="Stamp Collection" message="Loading your collection..." />
     );

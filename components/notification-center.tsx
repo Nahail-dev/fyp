@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, CheckCircle2, Mail, X, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabaseClient';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 type AppNotification = {
   id: string;
@@ -40,7 +41,6 @@ function notificationIcon(type: string) {
 }
 
 export function NotificationCenter({ userId }: { userId: string | null }) {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(
     typeof window !== 'undefined' && 'Notification' in window
@@ -51,57 +51,61 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
   const seenIdsRef = useRef<Set<string>>(new Set());
   const router = useRouter();
   const supabase = createClient();
+  const queryClient = useQueryClient();
+  const notificationQueryKey = ['notifications', userId] as const;
 
-  const unreadCount = notifications.filter((notification) => !notification.is_read).length;
-
-  const fetchNotifications = useCallback(async () => {
-    if (!userId) return;
-
-    try {
+  const notificationsQuery = useQuery({
+    queryKey: notificationQueryKey,
+    enabled: Boolean(userId),
+    queryFn: async () => {
       const response = await authenticatedFetch(`/api/notifications?userId=${userId}`);
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) return;
-
-      const nextNotifications = (data.notifications || []) as AppNotification[];
-      const newUnread = nextNotifications.filter(
-        (notification) => !notification.is_read && !seenIdsRef.current.has(notification.id),
-      );
-
-      setNotifications(nextNotifications);
-      nextNotifications.forEach((notification) => seenIdsRef.current.add(notification.id));
-
-      if (hasLoadedOnceRef.current) {
-        newUnread.forEach((notification) => {
-          toast(notification.title, {
-            description: notification.message || undefined,
-          });
-
-          if (permission === 'granted') {
-            const browserNotification = new Notification(notification.title, {
-              body: notification.message || undefined,
-              icon: '/logos/favicon/favicon-32x32.png',
-            });
-            browserNotification.onclick = () => {
-              window.focus();
-              if (notification.related_letter_id) {
-                router.push(`/app/letter/${notification.related_letter_id}`);
-              }
-            };
-          }
-        });
+      if (!response.ok) {
+        throw new Error(
+          typeof data.error === 'string' ? data.error : 'Failed to load notifications',
+        );
       }
+      return (data.notifications || []) as AppNotification[];
+    },
+    refetchInterval: 15000,
+  });
 
-      hasLoadedOnceRef.current = true;
-    } catch (error) {
-      console.log('[notifications] fetch failed:', error);
-    }
-  }, [permission, router, userId]);
+  const notifications = notificationsQuery.data ?? [];
+  const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = window.setInterval(fetchNotifications, 15000);
-    return () => window.clearInterval(interval);
-  }, [fetchNotifications]);
+    if (!notificationsQuery.data) return;
+
+    const newUnread = notifications.filter(
+      (notification) => !notification.is_read && !seenIdsRef.current.has(notification.id),
+    );
+
+    notifications.forEach((notification) => seenIdsRef.current.add(notification.id));
+
+    if (!hasLoadedOnceRef.current) {
+      hasLoadedOnceRef.current = true;
+      return;
+    }
+
+    newUnread.forEach((notification) => {
+      toast(notification.title, {
+        description: notification.message || undefined,
+      });
+
+      if (permission === 'granted') {
+        const browserNotification = new Notification(notification.title, {
+          body: notification.message || undefined,
+          icon: '/logos/favicon/favicon-32x32.png',
+        });
+        browserNotification.onclick = () => {
+          window.focus();
+          if (notification.related_letter_id) {
+            router.push(`/app/letter/${notification.related_letter_id}`);
+          }
+        };
+      }
+    });
+  }, [notifications, notificationsQuery.data, permission, router]);
 
   useEffect(() => {
     if (!userId) return;
@@ -117,7 +121,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          void fetchNotifications();
+          void queryClient.invalidateQueries({ queryKey: notificationQueryKey });
         },
       )
       .subscribe();
@@ -125,8 +129,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [fetchNotifications, userId]);
-
+  }, [notificationQueryKey, queryClient, supabase, userId]);
   const requestBrowserPermission = async () => {
     if (!('Notification' in window)) {
       setPermission('unsupported');
@@ -142,7 +145,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notificationId, isRead: true }),
     });
-    setNotifications((current) =>
+    queryClient.setQueryData<AppNotification[]>(notificationQueryKey, (current = []) =>
       current.map((notification) =>
         notification.id === notificationId
           ? { ...notification, is_read: true }
@@ -158,7 +161,7 @@ export function NotificationCenter({ userId }: { userId: string | null }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, markAll: true }),
     });
-    setNotifications((current) =>
+    queryClient.setQueryData<AppNotification[]>(notificationQueryKey, (current = []) =>
       current.map((notification) => ({ ...notification, is_read: true })),
     );
   };
