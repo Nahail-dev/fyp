@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { STAMPS, STARTING_COMMON_STAMPS } from '@/lib/stamps';
 import { getServiceSupabase, getVerifiedAuthUser } from '@/lib/apiAuth';
+import { syncStampAchievements } from '@/lib/stampAchievements';
 
 const supabase = getServiceSupabase();
 
@@ -20,6 +21,12 @@ export async function GET(request: NextRequest) {
     const type = request.nextUrl.searchParams.get('type');
 
     if (type === 'collected' && userId) {
+      try {
+        await syncStampAchievements(supabase, userId);
+      } catch (achievementError) {
+        console.log('[api/stamps] achievement sync failed:', achievementError);
+      }
+
       const { data: userStamps, error } = await supabase
         .from('user_stamp_inventory')
         .select('stamp_id, quantity, updated_at')

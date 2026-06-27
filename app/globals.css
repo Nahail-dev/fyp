@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Delius&family=Pinyon+Script&family=Reenie+Beanie&family=Noto+Nastaliq+Urdu:wght@400..700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -5,6 +6,13 @@
 
 :root {
   --yuubin-font-scale: 1;
+
+  /* Handwritten Ink Colors */
+  --ink-black: #1A1A1A;
+  --ink-blue: #1E3A8A;
+  --ink-sepia: #78350F;
+  --ink-green: #064E3B;
+  --ink-crimson: #881337;
 
   /* Postal Cream Base */
   --background: #FDF8F3;
@@ -104,6 +112,13 @@
   --border: #4A4033;
   --input: #2C2416;
   --ring: #B8944F;
+
+  /* Handwritten Ink Colors in Dark Mode */
+  --ink-black: #E8DCC8;
+  --ink-blue: #60A5FA;
+  --ink-sepia: #FBBF24;
+  --ink-green: #34D399;
+  --ink-crimson: #FB7185;
   
   /* Chart Colors */
   --chart-1: #B8944F;
@@ -220,6 +235,20 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Custom Handwriting Fonts */
+  --font-pinyon: 'Pinyon Script', cursive, sans-serif;
+  --font-dancing: 'Dancing Script', cursive, sans-serif;
+  --font-delius: 'Delius', cursive, sans-serif;
+  --font-reenie: 'Reenie Beanie', cursive, sans-serif;
+  --font-noto-urdu: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif;
+
+  /* Custom Ink Colors */
+  --color-ink-black: var(--ink-black);
+  --color-ink-blue: var(--ink-blue);
+  --color-ink-sepia: var(--ink-sepia);
+  --color-ink-green: var(--ink-green);
+  --color-ink-crimson: var(--ink-crimson);
 }
 
 @layer base {
@@ -239,12 +268,12 @@
   }
 
   .yuubin-urdu-ui body {
-    font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif;
+    font-family: var(--font-noto-urdu), 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif;
     line-height: 1.85;
   }
 
   .yuubin-urdu-ui .font-serif {
-    font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Georgia, serif;
+    font-family: var(--font-noto-urdu), 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Georgia, serif;
   }
 
   .yuubin-urdu-ui [dir='ltr'] {
@@ -709,3 +738,132 @@
   border-radius: 999px;
   background: var(--yuubin-toast-accent);
 }
+
+/* ==========================================
+   LEVEL 2: PREMIUM ANIMATIONS & LAYOUTS
+   ========================================== */
+
+/* 1. Wax Seal Break Animations */
+@keyframes seal-break-left {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(calc(-50% - 15px), -50%) scale(1.02) rotate(-8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% - 60px), calc(-50% + 20px)) scale(0.9) rotate(-25deg);
+    opacity: 0;
+  }
+}
+
+@keyframes seal-break-right {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(calc(-50% + 15px), -50%) scale(1.02) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + 60px), calc(-50% + 20px)) scale(0.9) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+.animate-seal-left {
+  animation: seal-break-left 0.8s forwards cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-seal-right {
+  animation: seal-break-right 0.8s forwards cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 2. Stamp Album Book Layout Styles */
+.stamp-album-book-desk {
+  background-color: color-mix(in srgb, var(--background) 92%, #3D2817);
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(212, 175, 106, 0.05) 0%, transparent 80%),
+    repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(139, 111, 71, 0.02) 15px, rgba(139, 111, 71, 0.02) 30px);
+}
+
+.stamp-album-book {
+  box-shadow: 
+    0 15px 40px -10px rgba(0, 0, 0, 0.3), 
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border: 12px solid #3d2817; /* Dark leather-like frame border */
+  border-radius: 8px;
+}
+
+.stamp-album-spine {
+  box-shadow: 
+    inset -8px 0 16px -8px rgba(0, 0, 0, 0.35),
+    inset 8px 0 16px -8px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(90deg, 
+    rgba(0,0,0,0.18) 0%, 
+    rgba(255,255,255,0.06) 50%, 
+    rgba(0,0,0,0.18) 100%);
+}
+
+.stamp-mounting-grid {
+  background-image: 
+    radial-gradient(color-mix(in srgb, var(--primary) 25%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.stamp-mount-sticker {
+  background: linear-gradient(180deg, rgba(212, 175, 106, 0.15) 0%, rgba(212, 175, 106, 0.02) 100%);
+  border: 1px dashed color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.stamp-album-tab {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease-in-out;
+}
+
+.stamp-album-tab:hover {
+  transform: translateX(3px);
+}
+
+/* 3. Curved Map Progress Tracker Styles */
+.map-route-line {
+  stroke-dasharray: 6 5;
+  animation: marching-ants 30s linear infinite;
+}
+
+@keyframes marching-ants {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -500;
+  }
+}
+
+.milestone-glow {
+  animation: milestone-pulse 2s infinite ease-in-out;
+}
+
+@keyframes milestone-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px var(--primary);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 12px var(--primary);
+  }
+}
+
+.envelope-glide {
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+

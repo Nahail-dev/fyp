@@ -5,10 +5,24 @@ import { CalendarDays, CheckCircle2, Rocket } from 'lucide-react';
 
 const releases = [
   {
+    number: 'Release 11',
+    title: 'TanStack Query Caching, Layout Responsiveness, and Signup Protection',
+    date: 'June 26, 2026',
+    status: 'Latest',
+    changes: [
+      'Integrated TanStack Query data caching to optimize state management and API performance across pages.',
+      'Prevented duplicate email signups at the database level and updated corresponding status reports.',
+      'Resolved sidebar vertical list overlaps by replacing flex height constraints with natural layout sizing and auto-scroll.',
+      'Adjusted theme switcher and accessibility controls inside the sidebar to span the full width of the control bar.',
+      'Made the main header logo text responsive, hiding it on mobile viewports to prevent layout collisions.',
+      'Ensured the interface remains left-to-right (LTR) for both English and Urdu modes while preserving translated Urdu text content.',
+    ],
+  },
+  {
     number: 'Release 10',
     title: 'Arrival Emails, Security Hardening, and Final Stability Pass',
     date: 'June 18, 2026',
-    status: 'Latest',
+    status: 'Completed',
     changes: [
       'Added email notifications when delayed letters reach their recipients.',
       'Added a protected scheduled delivery endpoint and Supabase Cron setup.',

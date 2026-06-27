@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { DEFAULT_STAMP_ID, STAMPS, getStampById } from '@/lib/stamps';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
+import { parseLetterContent, stringifyLetterContent } from '@/lib/utils';
 
 interface Letter {
   recipient: string;
@@ -43,6 +44,8 @@ export default function ComposePage() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [urduInputMode, setUrduInputMode] = useState<'roman' | 'native'>('roman');
+  const [selectedFont, setSelectedFont] = useState('font-serif');
+  const [selectedColor, setSelectedColor] = useState('text-foreground');
 
   useEffect(() => {
     const loadCurrentUser = async () => {
@@ -86,13 +89,16 @@ export default function ComposePage() {
         }
 
         setDraftId(draft.id);
+        const parsed = parseLetterContent(draft.content || '');
         setLetterData({
           recipient: draft.recipient?.username || '',
           subject: draft.title || '',
-          content: draft.content || '',
+          content: parsed.text,
           stamp: draft.stamp_id || DEFAULT_STAMP_ID,
           language: draft.language === 'ur' ? 'ur' : 'en',
         });
+        setSelectedFont(parsed.font);
+        setSelectedColor(parsed.color);
         if (draft.recipient) {
           setSelectedRecipient({
             id: draft.recipient.id,
@@ -225,7 +231,7 @@ export default function ComposePage() {
           senderId: user.id,
           recipientId: selectedRecipient.id,
           title: letterData.subject,
-          content: letterData.content,
+          content: stringifyLetterContent(letterData.content, selectedFont, selectedColor),
           status: 'sent',
           language: letterData.language,
           stampId: letterData.stamp,
@@ -265,6 +271,8 @@ export default function ComposePage() {
       setIsSending(false);
       setLetterData({ recipient: '', subject: '', content: '', stamp: DEFAULT_STAMP_ID, language: 'en' });
       setSelectedRecipient(null);
+      setSelectedFont('font-serif');
+      setSelectedColor('text-foreground');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send letter');
     } finally {
@@ -294,7 +302,7 @@ export default function ComposePage() {
         senderId: user.id,
         recipientId: selectedRecipient?.id ?? null,
         title: letterData.subject || 'Untitled Draft',
-        content: letterData.content || '',
+        content: stringifyLetterContent(letterData.content, selectedFont, selectedColor),
         status: 'draft',
         language: letterData.language,
         stampId: letterData.stamp,
@@ -601,6 +609,56 @@ export default function ComposePage() {
               <label className="block text-sm font-serif font-bold text-foreground">
                 {isUrdu ? 'خط کا متن' : 'Letter Content'}
               </label>
+
+              {/* Styling Toolbar */}
+              <div className="flex flex-wrap items-center gap-4 pb-3 border-b border-border text-sm">
+                {!isUrdu && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">
+                      Pen Style:
+                    </span>
+                    <select
+                      value={selectedFont}
+                      onChange={(e) => setSelectedFont(e.target.value)}
+                      className="rounded-sm border border-border bg-card px-2 py-1 text-xs font-serif font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                    >
+                      <option value="font-serif">Classic Serif</option>
+                      <option value="font-pinyon">Elegant Calligraphy</option>
+                      <option value="font-dancing">Flowing Script</option>
+                      <option value="font-delius">Casual Ink</option>
+                      <option value="font-reenie">Rustic Quill</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-serif font-bold text-muted-foreground uppercase tracking-wider">
+                    Ink Color:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {[
+                      { value: 'text-foreground', bg: 'bg-[#3D2817] dark:bg-[#E8DCC8]', label: 'Default Ink' },
+                      { value: 'text-ink-black', bg: 'bg-[#1A1A1A] dark:bg-[#F5EFEB]', label: 'Midnight Black' },
+                      { value: 'text-ink-blue', bg: 'bg-[#1E3A8A] dark:bg-[#60A5FA]', label: 'Prussian Blue' },
+                      { value: 'text-ink-sepia', bg: 'bg-[#78350F] dark:bg-[#FBBF24]', label: 'Sepia Ink' },
+                      { value: 'text-ink-green', bg: 'bg-[#064E3B] dark:bg-[#34D399]', label: 'Forest Green' },
+                      { value: 'text-ink-crimson', bg: 'bg-[#881337] dark:bg-[#FB7185]', label: 'Crimson Rose' },
+                    ].map((ink) => (
+                      <button
+                        key={ink.value}
+                        type="button"
+                        onClick={() => setSelectedColor(ink.value)}
+                        className={`h-6 w-6 rounded-full ${ink.bg} border border-border/60 transition-all hover:scale-110 cursor-pointer flex items-center justify-center ${
+                          selectedColor === ink.value ? 'ring-2 ring-primary ring-offset-2' : ''
+                        }`}
+                        title={ink.label}
+                        aria-label={ink.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <textarea
                 dir={writingDirection}
                 placeholder={
@@ -612,7 +670,11 @@ export default function ComposePage() {
                 onChange={(e) =>
                   updateTextField('content', e.target.value)
                 }
-                className={`w-full px-4 py-3 border border-border rounded-sm bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-96 resize-none leading-loose ${writingAlign} ${writingFont}`}
+                style={{
+                  fontFamily: isUrdu ? undefined : (selectedFont === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${selectedFont.replace('font-', '')}), cursive, sans-serif`),
+                  color: selectedColor === 'text-foreground' ? undefined : `var(--ink-${selectedColor.replace('text-ink-', '')})`
+                }}
+                className={`w-full px-4 py-3 border border-border rounded-sm bg-input placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-96 resize-none leading-loose ${writingAlign}`}
                 required
               />
               <p className="text-xs text-muted-foreground">
@@ -800,7 +862,11 @@ export default function ComposePage() {
             {/* Content */}
             <div
               dir={writingDirection}
-              className={`text-lg leading-loose text-foreground whitespace-pre-wrap ${writingAlign} ${writingFont}`}
+              style={{
+                fontFamily: isUrdu ? undefined : (selectedFont === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${selectedFont.replace('font-', '')}), cursive, sans-serif`),
+                color: selectedColor === 'text-foreground' ? undefined : `var(--ink-${selectedColor.replace('text-ink-', '')})`
+              }}
+              className={`text-lg leading-loose whitespace-pre-wrap ${writingAlign}`}
             >
               {letterData.content || (isUrdu ? 'آپ کے خط کا متن یہاں ظاہر ہوگا...' : 'Your letter content will appear here...')}
             </div>

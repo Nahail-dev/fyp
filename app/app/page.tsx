@@ -21,6 +21,7 @@ import { AppScreenLoader } from '@/components/app-screen-loader';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
 import { useAccessibility } from '@/components/accessibility-context';
 import { useQuery } from '@tanstack/react-query';
+import { parseLetterContent } from '@/lib/utils';
 
 interface UserProfile {
   id: string;
@@ -355,9 +356,10 @@ export default function Dashboard() {
                 const sender = letter.sender_profile;
                 const senderName =
                   sender?.username || sender?.full_name || t('unknownSender');
+                const parsed = parseLetterContent(letter.content);
                 const preview =
                   letter.status === 'delivered'
-                    ? `${letter.content.substring(0, 130)}${letter.content.length > 130 ? '...' : ''}`
+                    ? `${parsed.text.substring(0, 130)}${parsed.text.length > 130 ? '...' : ''}`
                     : t('travellingPreview');
 
                 return (

@@ -3,7 +3,8 @@
 
 alter table public.letters replica identity full;
 alter table public.notifications replica identity full;
-alter table public.user_stamps replica identity full;
+alter table public.user_stamp_inventory replica identity full;
+alter table public.user_stamp_achievements replica identity full;
 alter table public.letter_comments replica identity full;
 alter table public.letter_reactions replica identity full;
 
@@ -22,11 +23,17 @@ begin
   end;
 
   begin
-    alter publication supabase_realtime add table public.user_stamps;
+    alter publication supabase_realtime add table public.user_stamp_inventory;
   exception
     when duplicate_object then null;
   end;
 
+
+  begin
+    alter publication supabase_realtime add table public.user_stamp_achievements;
+  exception
+    when duplicate_object then null;
+  end;
   begin
     alter publication supabase_realtime add table public.letter_comments;
   exception

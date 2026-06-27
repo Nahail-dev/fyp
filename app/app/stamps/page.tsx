@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Award, Lock, Sparkles } from 'lucide-react';
+import { Award, Lock, Sparkles, BookOpen, HelpCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabaseClient';
 import { STAMPS, type StampRarity } from '@/lib/stamps';
 import { AppScreenLoader } from '@/components/app-screen-loader';
@@ -36,13 +36,13 @@ const getRarityColor = (rarity: StampRarity) => {
 const getRarityBgColor = (rarity: StampRarity) => {
   switch (rarity) {
     case 'common':
-      return 'bg-muted/20';
+      return 'bg-muted/20 border-muted/30';
     case 'epic':
-      return 'bg-accent/20';
+      return 'bg-accent/20 border-accent/30';
     case 'rare':
-      return 'bg-primary/20';
+      return 'bg-primary/20 border-primary/30';
     case 'legendary':
-      return 'bg-secondary/20';
+      return 'bg-secondary/20 border-secondary/30';
   }
 };
 
@@ -67,6 +67,9 @@ function normalizeStamp(
 export default function StampsPage() {
   const supabase = createClient();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'all' | 'common' | 'rare' | 'epic' | 'legendary'>('all');
+  const [selectedStampId, setSelectedStampId] = useState<string | null>(null);
+
   const stampsQuery = useQuery<{ userId: string | null; stamps: Stamp[] }>({
     queryKey: ['stamps', 'collection'],
     queryFn: async () => {
@@ -103,7 +106,7 @@ export default function StampsPage() {
         {
           event: '*',
           schema: 'public',
-          table: 'user_stamps',
+          table: 'user_stamp_inventory',
           filter: `user_id=eq.${currentUserId}`,
         },
         () => {
@@ -117,6 +120,15 @@ export default function StampsPage() {
     };
   }, [currentUserId, queryClient, supabase]);
 
+  // Set default selected stamp when stamps list loads
+  useEffect(() => {
+    if (stamps.length > 0 && !selectedStampId) {
+      // Default to first obtained stamp, or first stamp in list
+      const firstObtained = stamps.find((s) => s.obtained);
+      setSelectedStampId(firstObtained ? firstObtained.id : stamps[0].id);
+    }
+  }, [stamps, selectedStampId]);
+
   if (stampsQuery.isLoading) {
     return (
       <AppScreenLoader title="Stamp Collection" message="Loading your collection..." />
@@ -126,160 +138,256 @@ export default function StampsPage() {
   const obtainedCount = stamps.filter((s) => s.obtained).length;
   const totalStamps = stamps.length;
 
+  const selectedStamp = stamps.find((s) => s.id === selectedStampId) || stamps[0];
+  const filteredStamps = activeTab === 'all' 
+    ? stamps 
+    : stamps.filter((s) => s.rarity === activeTab);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h2 className="text-3xl font-serif font-bold text-foreground">Stamp Collection</h2>
+        <h2 className="text-3xl font-serif font-bold text-foreground">Yuubin Post Album</h2>
         <p className="text-muted-foreground">
-          Unlock unique postal stamps as you exchange letters
+          Unlock and collect stamps as you exchange correspondence with other writers.
         </p>
       </div>
 
-      {/* Collection Stats */}
-      <div className="postal-card p-8 space-y-6 border-l-4 border-l-primary">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-5xl font-serif font-bold text-primary">
-              {obtainedCount}/{totalStamps}
-            </p>
-            <p className="text-muted-foreground mt-2">Stamps Collected</p>
-          </div>
-          <Sparkles className="w-20 h-20 text-primary/30" />
-        </div>
+      {/* Album Scrapbook Desk Wrapper */}
+      <div className="stamp-album-book-desk relative p-3 sm:p-10 rounded-sm border border-border overflow-visible">
+        
+        {/* The Scrapbook */}
+        <div className="relative stamp-album-book w-full min-h-[620px] grid grid-cols-1 lg:grid-cols-2 bg-card rounded-sm overflow-visible">
+          
+          {/* Ring Binding Spine (Center crease) */}
+          <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-8 -translate-x-1/2 stamp-album-spine z-30 pointer-events-none" />
+          
+          {/* LEFT PAGE - Details & Stats */}
+          <div className="p-6 sm:p-8 lg:pr-12 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-border bg-card/45 rounded-l-sm z-10">
+            
+            {/* Top: Selected Stamp Display */}
+            {selectedStamp ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b border-border pb-3">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  <span className="font-serif font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                    Album Mounting Log
+                  </span>
+                </div>
 
-        {/* Progress Bar */}
-        <div>
-          <div className="w-full bg-muted rounded-full h-3">
-            <div
-              className="bg-primary h-3 rounded-full transition-all"
-              style={{ width: `${(obtainedCount / totalStamps) * 100}%` }}
-            ></div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            {Math.round((obtainedCount / totalStamps) * 100)}% of collection completed
-          </p>
-        </div>
-      </div>
-
-      {/* Stamps by Rarity */}
-      <div className="space-y-8">
-        {(['common', 'epic', 'rare', 'legendary'] as StampRarity[]).map((rarity) => {
-          const rarityStamps = stamps.filter((s) => s.rarity === rarity);
-          return (
-            <div key={rarity} className="space-y-4">
-              <h3 className={`text-xl font-serif font-bold capitalize ${getRarityColor(rarity)}`}>
-                {rarity.charAt(0).toUpperCase() + rarity.slice(1)}
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {rarityStamps.map((stamp) => (
-                  <div
-                    key={stamp.id}
-                    className={`postal-card p-6 space-y-4 transition-all ${
-                      stamp.obtained
-                        ? 'hover:shadow-lg'
-                        : 'opacity-60'
-                    }`}
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <h4 className="font-serif font-bold text-foreground text-lg">
-                          {stamp.name}
-                        </h4>
-                        <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-medium capitalize ${getRarityBgColor(stamp.rarity)} ${getRarityColor(stamp.rarity)}`}
-                        >
-                          {stamp.rarity}
-                        </span>
-                      </div>
-                      {stamp.obtained && (
-                        <Award className={`w-6 h-6 ${getRarityColor(stamp.rarity)}`} />
-                      )}
-                    </div>
-
-                    {/* Stamp Display */}
-                    <div className={`flex justify-center py-6 rounded-sm border-2 border-dashed ${stamp.obtained ? 'border-primary/40 bg-primary/5' : 'border-muted'}`}>
-                      <div className="text-center space-y-3">
-                        <div className={`relative mx-auto h-28 w-28 ${stamp.obtained ? 'animate-stamp-spin' : 'opacity-30 grayscale'}`}>
-                          <Image
-                            src={stamp.image_url || '/stamps/stamp-common.png'}
-                            alt={`${stamp.rarity} stamp artwork`}
-                            fill
-                            sizes="112px"
-                            className="object-contain drop-shadow-md"
-                          />
-                        </div>
-                        {stamp.obtained && (
-                          <p className="text-xs font-serif font-bold text-primary">
-                            × {stamp.count}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground">
-                      {stamp.description}
-                    </p>
-
-                    {/* Requirement */}
-                    <div className="flex items-start gap-2 pt-2 border-t border-border">
-                      <div className="flex-shrink-0 mt-1">
-                        {stamp.obtained ? (
-                          <Award className="w-4 h-4 text-accent" />
-                        ) : (
-                          <Lock className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {stamp.requirement}
-                      </p>
-                    </div>
-
-                    {/* Status */}
-                    {stamp.obtained ? (
-                      <p className="text-xs font-serif font-bold text-accent text-center">
-                        ✓ Unlocked
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground text-center">
-                        Keep writing to unlock
-                      </p>
-                    )}
+                {/* Big Stamp Visual */}
+                <div className={`relative mx-auto h-48 w-48 flex items-center justify-center rounded-sm border-2 border-dashed p-4 ${
+                  selectedStamp.obtained 
+                    ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10' 
+                    : 'border-muted bg-muted/10'
+                }`}>
+                  <div className={`relative w-36 h-36 ${selectedStamp.obtained ? '' : 'opacity-20 grayscale'}`}>
+                    <Image
+                      src={selectedStamp.image_url || '/stamps/stamp-common.png'}
+                      alt={selectedStamp.name}
+                      fill
+                      sizes="144px"
+                      className="object-contain drop-shadow-lg"
+                    />
                   </div>
-                ))}
+                  {!selectedStamp.obtained && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="rounded-full bg-background/80 p-3 shadow border border-border">
+                        <Lock className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stamp Info */}
+                <div className="space-y-3 text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 justify-center sm:justify-start">
+                    <h3 className="text-2xl font-serif font-bold text-foreground">
+                      {selectedStamp.name}
+                    </h3>
+                    <span className={`inline-block self-center px-2 py-0.5 rounded text-xxs border font-bold capitalize ${getRarityBgColor(selectedStamp.rarity)} ${getRarityColor(selectedStamp.rarity)}`}>
+                      {selectedStamp.rarity}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground italic leading-relaxed">
+                    "{selectedStamp.description}"
+                  </p>
+                </div>
+
+                {/* Requirement & Status */}
+                <div className="rounded-sm border border-border/80 bg-muted/20 p-4 space-y-2 text-xs">
+                  <div className="flex items-start gap-2">
+                    <HelpCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-serif font-bold text-foreground">Mounting Requirement:</p>
+                      <p className="text-muted-foreground">{selectedStamp.requirement}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                    <Award className={`w-4 h-4 shrink-0 ${selectedStamp.obtained ? 'text-accent' : 'text-muted-foreground'}`} />
+                    <p className="font-serif font-bold text-foreground">
+                      Status: {' '}
+                      <span className={selectedStamp.obtained ? 'text-accent' : 'text-muted-foreground'}>
+                        {selectedStamp.obtained ? `Unlocked (Held: ${selectedStamp.count} pcs)` : 'Locked'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                <BookOpen className="w-12 h-12 text-muted-foreground opacity-40 animate-pulse" />
+                <p className="text-sm text-muted-foreground">Select a stamp from the mounting sheets to examine details.</p>
+              </div>
+            )}
+
+            {/* Bottom: Book Progress Tracker */}
+            <div className="mt-8 pt-6 border-t border-border space-y-3">
+              <div className="flex justify-between text-xs font-serif font-bold">
+                <span className="text-muted-foreground">Collection Progress:</span>
+                <span className="text-primary">{obtainedCount}/{totalStamps} Unlocked</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${(obtainedCount / totalStamps) * 100}%` }}
+                />
+              </div>
+              <p className="text-xxs text-muted-foreground text-right italic">
+                {Math.round((obtainedCount / totalStamps) * 100)}% of album mounted
+              </p>
             </div>
-          );
-        })}
+          </div>
+
+          {/* RIGHT PAGE - Mounting Sheets Grid */}
+          <div className="relative p-6 sm:p-8 lg:pl-12 stamp-mounting-grid bg-card rounded-r-md z-10 overflow-visible">
+            
+            {/* Page Header */}
+            <div className="flex items-center justify-between border-b border-border pb-3 mb-6">
+              <span className="font-serif font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                Mounting Sheet: {activeTab === 'all' ? 'All Slots' : `${activeTab} Class`}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Showing {filteredStamps.length} Slots
+              </span>
+            </div>
+
+            {/* Book Bookmark Tabs (Desktop physical tabs) */}
+            <div className="hidden sm:flex absolute right-0 top-16 flex-col gap-2 translate-x-full z-20">
+              {[
+                { id: 'all', label: 'All', bg: 'bg-[#5C4033] hover:bg-[#4A332A]' },
+                { id: 'common', label: 'Common', bg: 'bg-muted-foreground/80 hover:bg-muted-foreground' },
+                { id: 'rare', label: 'Rare', bg: 'bg-primary hover:bg-primary/90' },
+                { id: 'epic', label: 'Epic', bg: 'bg-accent hover:bg-accent/90' },
+                { id: 'legendary', label: 'Legendary', bg: 'bg-secondary hover:bg-secondary/90' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    // Select first stamp in new list
+                    const first = stamps.find((s) => s.rarity === tab.id || tab.id === 'all');
+                    if (first) setSelectedStampId(first.id);
+                  }}
+                  className={`stamp-album-tab w-6 py-4 text-xxs font-serif font-bold text-white text-center leading-none ${tab.bg} ${
+                    activeTab === tab.id ? 'ring-2 ring-primary ring-offset-1 translate-x-2' : ''
+                  }`}
+                >
+                  {tab.label.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Tab Select Dropdown */}
+            <div className="sm:hidden mb-4">
+              <label className="block text-xs font-bold text-muted-foreground mb-1">Select Sheet:</label>
+              <select
+                value={activeTab}
+                onChange={(e) => {
+                  const val = e.target.value as any;
+                  setActiveTab(val);
+                  const first = stamps.find((s) => s.rarity === val || val === 'all');
+                  if (first) setSelectedStampId(first.id);
+                }}
+                className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none"
+              >
+                <option value="all">All Stamps</option>
+                <option value="common">Common Stamps</option>
+                <option value="rare">Rare Stamps</option>
+                <option value="epic">Epic Stamps</option>
+                <option value="legendary">Legendary Stamps</option>
+              </select>
+            </div>
+
+            {/* Stamp Slots Grid */}
+            <div className="grid grid-cols-3 gap-4 max-h-[480px] overflow-y-auto pr-1">
+              {filteredStamps.map((stamp) => (
+                <button
+                  key={stamp.id}
+                  onClick={() => setSelectedStampId(stamp.id)}
+                  className={`relative aspect-square flex flex-col items-center justify-center rounded border-2 p-2 transition-all cursor-pointer ${
+                    selectedStampId === stamp.id 
+                      ? 'border-primary ring-2 ring-primary/40 bg-primary/10 shadow-md' 
+                      : stamp.obtained
+                        ? 'border-primary/20 bg-primary/5 hover:border-primary/40 hover:bg-primary/10'
+                        : 'border-dashed border-muted hover:border-muted-foreground/40 bg-muted/5'
+                  }`}
+                >
+                  {/* Mount sticker effect */}
+                  {stamp.obtained && (
+                    <div className="absolute top-0.5 left-1/2 -translate-x-1/2 w-8 h-2.5 stamp-mount-sticker z-10 pointer-events-none" />
+                  )}
+
+                  {/* Stamp Graphic */}
+                  <div className={`relative w-full h-full max-w-[72px] max-h-[72px] ${stamp.obtained ? 'drop-shadow-sm' : 'opacity-25 grayscale'}`}>
+                    <Image
+                      src={stamp.image_url || '/stamps/stamp-common.png'}
+                      alt={`${stamp.name} stamp slot`}
+                      fill
+                      sizes="72px"
+                      className="object-contain"
+                    />
+                  </div>
+
+                  {/* Lock Indicator */}
+                  {!stamp.obtained && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-sm">
+                      <Lock className="w-4 h-4 text-muted-foreground/60" />
+                    </div>
+                  )}
+
+                  {/* Stamp count badge */}
+                  {stamp.obtained && stamp.count > 1 && (
+                    <span className="absolute bottom-1 right-1 rounded-full bg-primary px-1 text-[9px] font-serif font-bold text-white shadow-sm leading-none flex items-center justify-center min-w-4 h-4">
+                      {stamp.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Empty slots notice */}
+            {filteredStamps.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground border-2 border-dashed border-border rounded">
+                <Sparkles className="w-8 h-8 opacity-45 mb-2" />
+                <p className="text-xs">No stamps mounted in this sheet yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Achievements Info */}
-      <div className="postal-card p-8 space-y-4 border-l-4 border-l-accent">
+      {/* Album guide */}
+      <div className="postal-card p-6 space-y-4 border-l-4 border-l-primary">
         <h3 className="text-lg font-serif font-bold text-foreground flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-accent" />
-          Stamp Collection Benefits
+          <Sparkles className="w-5 h-5 text-primary" />
+          Album Collection Benefits
         </h3>
-        <ul className="space-y-3 text-sm text-muted-foreground">
-          <li className="flex gap-3">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>Show your stamp collection on your profile</span>
-          </li>
-          <li className="flex gap-3">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>Unlock special badges and recognition</span>
-          </li>
-          <li className="flex gap-3">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>Connect with collectors worldwide</span>
-          </li>
-          <li className="flex gap-3">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span>Legendary collectors receive exclusive features</span>
-          </li>
-        </ul>
+        <p className="text-sm text-muted-foreground">
+          Stamps are awarded dynamically based on milestone achievements, sending letters over varying distances, writing letters in multiple languages, and receiving replies from other pen pals. Completing pages inside your Yuubin Post Album unlocks special profile badges.
+        </p>
       </div>
     </div>
   );

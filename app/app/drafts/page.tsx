@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { AppScreenLoader } from '@/components/app-screen-loader';
 import { authenticatedFetch } from '@/lib/authenticatedFetch';
+import { parseLetterContent } from '@/lib/utils';
 
 type DraftLetter = {
   id: string;
@@ -100,7 +101,8 @@ export default function DraftsPage() {
 
       <div className="grid gap-4">
         {drafts.map((draft) => {
-          const preview = draft.content?.trim() || 'No content yet';
+          const parsed = parseLetterContent(draft.content || '');
+          const preview = parsed.text.trim() || 'No content yet';
           const lastEdited = new Date(draft.updated_at || draft.created_at).toLocaleString();
 
           return (

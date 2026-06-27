@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         .eq('status', 'delivered')
         .eq('is_read', false),
       supabase
-        .from('user_stamps')
+        .from('user_stamp_inventory')
         .select('quantity')
         .eq('user_id', userId),
       supabase

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -26,6 +26,7 @@ import {
   getLetterDisplayStatus,
   getLetterProgress,
 } from '@/lib/letterDeliveryStatus';
+import { parseLetterContent } from '@/lib/utils';
 
 interface LetterUser {
   id: string;
@@ -87,6 +88,7 @@ export default function LetterPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [letter, setLetter] = useState<Letter | null>(null);
+  const progress = letter ? getLetterProgress(letter) : 0;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -106,6 +108,11 @@ export default function LetterPage() {
   const [myReactions, setMyReactions] = useState<ReactionKey[]>([]);
   const [, setProgressTick] = useState(0);
   const supabase = createClient();
+  const [isOpening, setIsOpening] = useState(false);
+  const [sealCracked, setSealCracked] = useState(false);
+  const pathRef = useRef<SVGPathElement>(null);
+  const [point, setPoint] = useState({ x: 50, y: 130, angle: 0 });
+  const [pathLength, setPathLength] = useState(0);
 
   const getAuthHeaders = async () => {
     const {
@@ -162,6 +169,37 @@ export default function LetterPage() {
 
     return () => window.clearInterval(tick);
   }, []);
+
+  useEffect(() => {
+    const updatePoint = () => {
+      if (pathRef.current) {
+        try {
+          const totalLen = pathRef.current.getTotalLength();
+          setPathLength(totalLen);
+          const targetLength = totalLen * (progress / 100);
+          const pt = pathRef.current.getPointAtLength(targetLength);
+          const nextPt = pathRef.current.getPointAtLength(Math.min(totalLen, targetLength + 2));
+          const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * (180 / Math.PI);
+          setPoint({ x: pt.x, y: pt.y, angle });
+        } catch (e) {
+          // Browser compatibility fallback
+        }
+      }
+    };
+
+    const timeout = setTimeout(updatePoint, 100);
+    return () => clearTimeout(timeout);
+  }, [progress, letter]);
+
+  const handleOpenEnvelope = () => {
+    if (isOpening) return;
+    setIsOpening(true);
+    setSealCracked(true);
+    setTimeout(() => {
+      setIsOpened(true);
+      setIsOpening(false);
+    }, 1500);
+  };
 
   useEffect(() => {
     if (!letter || letter.delivered_at || getLetterDisplayStatus(letter) !== 'delivered') {
@@ -301,7 +339,6 @@ export default function LetterPage() {
   }
 
   const deliveryStatus = getLetterDisplayStatus(letter);
-  const progress = getLetterProgress(letter);
   const senderName =
     letter.sender?.full_name || letter.sender?.username || 'Unknown sender';
   const senderLocation = letter.sender_city
@@ -311,9 +348,11 @@ export default function LetterPage() {
   const isUrdu = letter.language === 'ur';
   const direction = isUrdu ? 'rtl' : 'ltr';
   const align = isUrdu ? 'text-right' : 'text-left';
+  const parsed = parseLetterContent(letter.content);
   const font = isUrdu
     ? "[font-family:'Noto_Nastaliq_Urdu','Noto_Naskh_Arabic','Arial',sans-serif]"
-    : 'font-serif';
+    : parsed.font;
+  const color = parsed.color;
   const stamp = getStampById(letter.stamp_id);
   const isSender = currentUserId === letter.sender?.id;
   const canOpenLetter = deliveryStatus === 'delivered' || isSender;
@@ -456,35 +495,103 @@ export default function LetterPage() {
       <div className="mx-auto w-full max-w-2xl space-y-6">
         {!canOpenLetter ? (
           <div className="postal-card overflow-hidden p-8 text-center">
-            <div className="relative mx-auto mb-8 h-56 max-w-xl rounded-sm border border-border bg-muted/20 px-6 py-8">
-              <div className="absolute left-8 right-8 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border" />
-              <div
-                className="absolute left-8 top-1/2 h-1 -translate-y-1/2 rounded-full bg-status-transit transition-all"
-                style={{ width: `calc((100% - 4rem) * ${progress / 100})` }}
-              />
-              <div className="absolute left-7 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-card text-primary shadow-sm">
-                  <Mail className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-medium text-muted-foreground">Sent</span>
+            {/* Curved Map-Based Delivery Tracker */}
+            <div className="relative mx-auto mb-8 w-full max-w-xl rounded-sm border-2 border-[#E3D8C2] dark:border-[#3A332B] bg-[#FAF3E0] dark:bg-[#1E1916] p-6 shadow-md overflow-hidden select-none">
+              
+              {/* Map grid coordinate markings */}
+              <div className="absolute inset-0 opacity-10 bg-[linear-gradient(rgba(139,111,71,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(139,111,71,0.15)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+              
+              {/* Map decorations: Compass Rose and flight path details */}
+              <div className="absolute right-4 top-4 w-12 h-12 opacity-15 text-primary border border-primary/30 rounded-full flex items-center justify-center font-serif text-[10px] pointer-events-none">
+                N
               </div>
-              <div className="absolute right-7 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-accent/40 bg-card text-accent shadow-sm">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <span className="text-xs font-medium text-muted-foreground">Arrival</span>
-              </div>
-              <div
-                className="yuubin-transit-envelope absolute top-1/2 z-20 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-sm border border-primary/40 bg-card text-primary shadow-lg"
-                style={{
-                  left: `clamp(2.25rem, calc(2rem + (100% - 4rem) * ${
-                    progress / 100
-                  }), calc(100% - 5.75rem))`,
-                }}
-              >
-                <Mail className="h-7 w-7" />
-              </div>
-              <div className="absolute inset-x-6 bottom-5 flex items-center justify-between text-xs text-muted-foreground">
+
+              {/* SVG Curve Path Drawing */}
+              <svg viewBox="0 0 500 180" className="w-full h-48 relative z-10">
+                {/* Curved background line */}
+                <path
+                  id="delivery-path"
+                  ref={pathRef}
+                  d="M 50 130 C 150 40, 350 40, 450 130"
+                  fill="none"
+                  stroke="color-mix(in srgb, var(--border) 35%, transparent)"
+                  strokeWidth="3.5"
+                  className="map-route-line"
+                />
+
+                {/* Golden completed trace path */}
+                <path
+                  d="M 50 130 C 150 40, 350 40, 450 130"
+                  fill="none"
+                  stroke="var(--primary)"
+                  strokeWidth="4"
+                  strokeDasharray={pathLength || 420}
+                  strokeDashoffset={(pathLength || 420) * (1 - progress / 100)}
+                  className="transition-all duration-1000 ease-out"
+                />
+
+                {/* SVG Milestone Indicators */}
+                {[
+                  { pct: 0, label: 'Sent', x: 50, y: 130 },
+                  { pct: 33, label: 'Sorting', x: 171.5, y: 69.3 },
+                  { pct: 66, label: 'In Transit', x: 328.5, y: 69.3 },
+                  { pct: 100, label: 'Arrival', x: 450, y: 130 },
+                ].map((milestone, idx) => {
+                  const active = progress >= milestone.pct;
+                  return (
+                    <g key={idx}>
+                      <circle
+                        cx={milestone.x}
+                        cy={milestone.y}
+                        r="8"
+                        className={`${
+                          active ? 'fill-primary milestone-glow' : 'fill-muted stroke-border stroke-2'
+                        } transition-colors duration-500`}
+                      />
+                      <circle
+                        cx={milestone.x}
+                        cy={milestone.y}
+                        r="4"
+                        className="fill-background"
+                      />
+                      <text
+                        x={milestone.x}
+                        y={milestone.y + 24}
+                        textAnchor="middle"
+                        className={`font-serif text-[10px] font-bold ${
+                          active ? 'fill-foreground' : 'fill-muted-foreground'
+                        }`}
+                      >
+                        {milestone.label}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Gliding Envelope Icon */}
+                {point && (
+                  <g
+                    transform={`translate(${point.x}, ${point.y}) rotate(${point.angle})`}
+                    className="envelope-glide"
+                  >
+                    <rect
+                      x="-14"
+                      y="-10"
+                      width="28"
+                      height="20"
+                      rx="2"
+                      className="fill-card stroke-primary stroke-2"
+                    />
+                    <path
+                      d="M -14 -10 L 0 0 L 14 -10"
+                      fill="none"
+                      className="stroke-primary stroke-2"
+                    />
+                  </g>
+                )}
+              </svg>
+
+              <div className="absolute inset-x-6 bottom-3 flex items-center justify-between text-xxs font-serif font-bold text-muted-foreground">
                 <span>{progress}% travelled</span>
                 <span>Arrives {formatDeliveryEta(letter.estimated_delivery_at)}</span>
               </div>
@@ -507,43 +614,112 @@ export default function LetterPage() {
             </div>
           </div>
         ) : !isOpened ? (
-          <button
-            type="button"
-            onClick={() => setIsOpened(true)}
-            className="block w-full cursor-pointer text-left"
-          >
-            <div className="postal-card shadow-xl hover:shadow-2xl transition-all animate-letter-arrival">
-              <div className="relative h-96 overflow-hidden bg-gradient-to-br from-card to-muted/30">
-                <div className="absolute inset-x-0 top-0 flex h-1/2 items-center justify-center border-b border-border bg-card transition-transform duration-300 hover:-translate-y-2">
-                  <div className="text-center space-y-4">
-                    <div className="text-5xl">✉</div>
-                    <p className="text-muted-foreground text-sm">Click to open</p>
-                  </div>
-                </div>
-                <div className="flex h-full flex-col items-center justify-center px-8 pt-20 text-center">
-                  <h2 className="text-2xl font-serif font-bold text-foreground">
-                    {letter.title}
-                  </h2>
-                  <p className="mt-3 text-muted-foreground">From {senderName}</p>
-                  <p className="text-sm text-muted-foreground">{senderLocation}</p>
-                </div>
-                <div className="absolute right-6 top-6 flex h-24 w-20 items-center justify-center rounded-sm border-2 border-primary/30 bg-gradient-to-br from-primary/20 to-primary/10">
-                  <div className="text-center text-xs font-serif font-bold text-primary">
-                    <div>STAMP</div>
-                    <div className="relative mx-auto mt-1 h-12 w-12">
-                      <Image
-                        src={stamp.image}
-                        alt={`${stamp.name} stamp`}
-                        fill
-                        sizes="48px"
-                        className="object-contain"
-                      />
-                    </div>
-                  </div>
+          <div className="perspective-[1000px] w-full max-w-xl mx-auto h-[450px] relative overflow-visible select-none">
+            {/* The Envelope */}
+            <div className={`relative w-full h-full bg-card rounded-sm shadow-xl border border-border transition-all duration-1000 ${
+              isOpening ? 'translate-y-[200px] opacity-0 scale-95 pointer-events-none' : ''
+            }`}>
+              
+              {/* Back Pocket Background */}
+              <div className="absolute inset-0 bg-[#EADEC9] dark:bg-[#1E1712] rounded-sm overflow-hidden z-0">
+                {/* Visual coordinate markings inside envelope back pocket */}
+                <div className="absolute inset-0 opacity-10 font-mono text-[9px] p-4 text-[#8B6F47] select-none pointer-events-none">
+                  YUUBIN POSTAL SERVICE · CONFIDENTIAL CORRESPONDENCE
                 </div>
               </div>
+
+              {/* Letter Paper (Slides Out Upward) */}
+              <div 
+                style={{
+                  fontFamily: isUrdu ? undefined : (font === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${font.replace('font-', '')}), cursive, sans-serif`),
+                  color: parsed.color === 'text-foreground' ? undefined : `var(--ink-${parsed.color.replace('text-ink-', '')})`
+                }}
+                className={`absolute inset-x-6 top-6 bottom-6 bg-card border border-border/80 shadow-md p-8 rounded-sm select-none pointer-events-none transition-transform duration-1000 ease-in-out ${
+                  isOpening ? 'translate-y-[-160px] scale-[1.03] z-25' : 'translate-y-0 z-10'
+                }`}
+              >
+                {/* Truncated header of letter to show it rising out */}
+                <h3 className="text-sm font-bold opacity-40 line-clamp-1 border-b border-border/40 pb-2">
+                  {letter.title}
+                </h3>
+                <p className="text-xs opacity-30 mt-3 line-clamp-4 leading-loose">
+                  {parsed.text}
+                </p>
+              </div>
+
+              {/* Front Pocket Overlay (Bottom/Side Triangles) */}
+              <div 
+                className="absolute inset-x-0 bottom-0 h-2/3 border-t border-border/50 rounded-b-sm bg-gradient-to-t from-[#FDF8F3] to-[#FDF8F3]/95 dark:from-[#1C1816] dark:to-[#1C1816]/95 z-20"
+                style={{
+                  clipPath: 'polygon(0 100%, 50% 40%, 100% 100%, 100% 40%, 0 40%)'
+                }}
+              />
+              {/* Left Triangle */}
+              <div 
+                className="absolute left-0 bottom-0 top-0 w-1/2 border-r border-border/50 bg-[#FDF8F3]/95 dark:bg-[#1C1816]/95 z-20"
+                style={{
+                  clipPath: 'polygon(0 0, 0 100%, 100% 100%)'
+                }}
+              />
+              {/* Right Triangle */}
+              <div 
+                className="absolute right-0 bottom-0 top-0 w-1/2 border-l border-border/50 bg-[#FDF8F3]/95 dark:bg-[#1C1816]/95 z-20"
+                style={{
+                  clipPath: 'polygon(100% 0, 0 100%, 100% 100%)'
+                }}
+              />
+
+              {/* Envelope Top Flap (Rotates Upward) */}
+              <div 
+                className={`absolute inset-x-0 top-0 h-1/2 bg-[#FDF8F3] dark:bg-[#1C1816] border-b border-border/30 origin-top z-30 transition-transform duration-700 ease-in-out`}
+                style={{
+                  clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+                  transform: isOpening ? 'rotateX(180deg)' : 'rotateX(0deg)',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                }}
+              />
+
+              {/* Wax Seal Button */}
+              <button
+                type="button"
+                onClick={handleOpenEnvelope}
+                disabled={isOpening}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full cursor-pointer focus:outline-none z-40 transition-all hover:scale-105"
+              >
+                {/* Left Half of Seal */}
+                <div 
+                  className={`absolute inset-0 bg-[#8B1D1D] rounded-full border border-[#6B1313] shadow-md flex items-center justify-center ${
+                    sealCracked ? 'animate-seal-left' : ''
+                  }`}
+                  style={{
+                    clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)'
+                  }}
+                >
+                  <span className="text-yellow-500 font-serif font-bold text-xs select-none -translate-x-0.5">Y</span>
+                </div>
+                {/* Right Half of Seal */}
+                <div 
+                  className={`absolute inset-0 bg-[#8B1D1D] rounded-full border border-[#6B1313] shadow-md flex items-center justify-center ${
+                    sealCracked ? 'animate-seal-right' : ''
+                  }`}
+                  style={{
+                    clipPath: 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)'
+                  }}
+                >
+                  <span className="text-yellow-500 font-serif font-bold text-xs select-none translate-x-0.5">Y</span>
+                </div>
+              </button>
+
+              {/* Instruction Prompt */}
+              {!isOpening && (
+                <div className="absolute bottom-6 left-0 right-0 text-center z-35 animate-bounce">
+                  <p className="text-xxs font-serif font-bold text-muted-foreground uppercase tracking-widest bg-background/80 py-1.5 px-3 rounded-full border border-border inline-block shadow-sm">
+                    Click the Seal to Open
+                  </p>
+                </div>
+              )}
             </div>
-          </button>
+          </div>
         ) : (
           <div className="space-y-8 animate-envelope-open">
             <div className="postal-card p-12 space-y-6 shadow-lg">
@@ -572,9 +748,13 @@ export default function LetterPage() {
 
               <div
                 dir={direction}
-                className={`whitespace-pre-wrap text-lg leading-relaxed text-foreground ${align} ${font}`}
+                style={{
+                  fontFamily: isUrdu ? undefined : (font === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${font.replace('font-', '')}), cursive, sans-serif`),
+                  color: parsed.color === 'text-foreground' ? undefined : `var(--ink-${parsed.color.replace('text-ink-', '')})`
+                }}
+                className={`whitespace-pre-wrap text-lg leading-relaxed ${align}`}
               >
-                {letter.content}
+                {parsed.text}
               </div>
             </div>
 
