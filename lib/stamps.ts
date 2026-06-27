@@ -40,7 +40,7 @@ export const STAMPS: StampDefinition[] = [
     description: 'A special stamp for devoted letter writers.',
     rarity: 'legendary',
     image: '/stamps/stamp-legendary.png',
-    requirement: 'Build a complete stamp collection',
+    requirement: 'Send 25 letters including 3 international letters',
   },
 ];
 

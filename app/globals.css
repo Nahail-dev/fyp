@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Delius&family=Pinyon+Script&family=Reenie+Beanie&family=Noto+Nastaliq+Urdu:wght@400..700&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -5,6 +6,13 @@
 
 :root {
   --yuubin-font-scale: 1;
+
+  /* Handwritten Ink Colors */
+  --ink-black: #1A1A1A;
+  --ink-blue: #1E3A8A;
+  --ink-sepia: #78350F;
+  --ink-green: #064E3B;
+  --ink-crimson: #881337;
 
   /* Postal Cream Base */
   --background: #FDF8F3;
@@ -104,6 +112,13 @@
   --border: #4A4033;
   --input: #2C2416;
   --ring: #B8944F;
+
+  /* Handwritten Ink Colors in Dark Mode */
+  --ink-black: #E8DCC8;
+  --ink-blue: #60A5FA;
+  --ink-sepia: #FBBF24;
+  --ink-green: #34D399;
+  --ink-crimson: #FB7185;
   
   /* Chart Colors */
   --chart-1: #B8944F;
@@ -220,6 +235,19 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Custom Handwriting Fonts */
+  --font-pinyon: 'Pinyon Script', cursive;
+  --font-dancing: 'Dancing Script', cursive;
+  --font-delius: 'Delius', cursive;
+  --font-reenie: 'Reenie Beanie', cursive;
+
+  /* Custom Ink Colors */
+  --color-ink-black: var(--ink-black);
+  --color-ink-blue: var(--ink-blue);
+  --color-ink-sepia: var(--ink-sepia);
+  --color-ink-green: var(--ink-green);
+  --color-ink-crimson: var(--ink-crimson);
 }
 
 @layer base {

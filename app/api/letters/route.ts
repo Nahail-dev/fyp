@@ -4,6 +4,7 @@ import { calculateDelivery } from '@/lib/deliveryTime';
 import { DEFAULT_STAMP_ID, getStampById } from '@/lib/stamps';
 import { syncLetterDeliveries } from '@/lib/deliveryNotifications';
 import { getServiceSupabase, getVerifiedAuthUser } from '@/lib/apiAuth';
+import { syncStampAchievements } from '@/lib/stampAchievements';
 
 const supabase = getServiceSupabase();
 
@@ -282,6 +283,14 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (status !== 'draft') {
+      try {
+        await syncStampAchievements(supabase, senderId);
+      } catch (achievementError) {
+        console.log('[api/letters] achievement sync failed:', achievementError);
+      }
     }
 
     if (status !== 'draft' && recipientId && letter?.id) {

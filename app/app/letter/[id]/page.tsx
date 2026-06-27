@@ -26,6 +26,7 @@ import {
   getLetterDisplayStatus,
   getLetterProgress,
 } from '@/lib/letterDeliveryStatus';
+import { parseLetterContent } from '@/lib/utils';
 
 interface LetterUser {
   id: string;
@@ -311,9 +312,11 @@ export default function LetterPage() {
   const isUrdu = letter.language === 'ur';
   const direction = isUrdu ? 'rtl' : 'ltr';
   const align = isUrdu ? 'text-right' : 'text-left';
+  const parsed = parseLetterContent(letter.content);
   const font = isUrdu
     ? "[font-family:'Noto_Nastaliq_Urdu','Noto_Naskh_Arabic','Arial',sans-serif]"
-    : 'font-serif';
+    : parsed.font;
+  const color = parsed.color;
   const stamp = getStampById(letter.stamp_id);
   const isSender = currentUserId === letter.sender?.id;
   const canOpenLetter = deliveryStatus === 'delivered' || isSender;
@@ -572,9 +575,9 @@ export default function LetterPage() {
 
               <div
                 dir={direction}
-                className={`whitespace-pre-wrap text-lg leading-relaxed text-foreground ${align} ${font}`}
+                className={`whitespace-pre-wrap text-lg leading-relaxed ${align} ${font} ${parsed.color}`}
               >
-                {letter.content}
+                {parsed.text}
               </div>
             </div>
 

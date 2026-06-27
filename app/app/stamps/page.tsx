@@ -103,7 +103,7 @@ export default function StampsPage() {
         {
           event: '*',
           schema: 'public',
-          table: 'user_stamps',
+          table: 'user_stamp_inventory',
           filter: `user_id=eq.${currentUserId}`,
         },
         () => {
