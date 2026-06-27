@@ -88,6 +88,7 @@ export default function LetterPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [letter, setLetter] = useState<Letter | null>(null);
+  const progress = letter ? getLetterProgress(letter) : 0;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -111,6 +112,7 @@ export default function LetterPage() {
   const [sealCracked, setSealCracked] = useState(false);
   const pathRef = useRef<SVGPathElement>(null);
   const [point, setPoint] = useState({ x: 50, y: 130, angle: 0 });
+  const [pathLength, setPathLength] = useState(0);
 
   const getAuthHeaders = async () => {
     const {
@@ -170,13 +172,13 @@ export default function LetterPage() {
 
   useEffect(() => {
     const updatePoint = () => {
-      if (pathRef.current && letter) {
+      if (pathRef.current) {
         try {
-          const progressVal = getLetterProgress(letter);
-          const pathLength = pathRef.current.getTotalLength();
-          const targetLength = pathLength * (progressVal / 100);
+          const totalLen = pathRef.current.getTotalLength();
+          setPathLength(totalLen);
+          const targetLength = totalLen * (progress / 100);
           const pt = pathRef.current.getPointAtLength(targetLength);
-          const nextPt = pathRef.current.getPointAtLength(Math.min(pathLength, targetLength + 2));
+          const nextPt = pathRef.current.getPointAtLength(Math.min(totalLen, targetLength + 2));
           const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * (180 / Math.PI);
           setPoint({ x: pt.x, y: pt.y, angle });
         } catch (e) {
@@ -187,7 +189,7 @@ export default function LetterPage() {
 
     const timeout = setTimeout(updatePoint, 100);
     return () => clearTimeout(timeout);
-  }, [letter]);
+  }, [progress, letter]);
 
   const handleOpenEnvelope = () => {
     if (isOpening) return;
@@ -337,7 +339,6 @@ export default function LetterPage() {
   }
 
   const deliveryStatus = getLetterDisplayStatus(letter);
-  const progress = getLetterProgress(letter);
   const senderName =
     letter.sender?.full_name || letter.sender?.username || 'Unknown sender';
   const senderLocation = letter.sender_city
@@ -524,8 +525,8 @@ export default function LetterPage() {
                   fill="none"
                   stroke="var(--primary)"
                   strokeWidth="4"
-                  strokeDasharray="1000"
-                  strokeDashoffset={1000 * (1 - progress / 100)}
+                  strokeDasharray={pathLength || 420}
+                  strokeDashoffset={(pathLength || 420) * (1 - progress / 100)}
                   className="transition-all duration-1000 ease-out"
                 />
 
@@ -570,19 +571,19 @@ export default function LetterPage() {
                 {/* Gliding Envelope Icon */}
                 {point && (
                   <g
-                    transform={`translate(${point.x - 16}, ${point.y - 16}) rotate(${point.angle})`}
+                    transform={`translate(${point.x}, ${point.y}) rotate(${point.angle})`}
                     className="envelope-glide"
                   >
                     <rect
-                      x="2"
-                      y="6"
+                      x="-14"
+                      y="-10"
                       width="28"
                       height="20"
                       rx="2"
                       className="fill-card stroke-primary stroke-2"
                     />
                     <path
-                      d="M 2 6 L 16 16 L 30 6"
+                      d="M -14 -10 L 0 0 L 14 -10"
                       fill="none"
                       className="stroke-primary stroke-2"
                     />
