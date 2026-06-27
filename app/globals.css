@@ -237,10 +237,11 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   /* Custom Handwriting Fonts */
-  --font-pinyon: 'Pinyon Script', cursive;
-  --font-dancing: 'Dancing Script', cursive;
-  --font-delius: 'Delius', cursive;
-  --font-reenie: 'Reenie Beanie', cursive;
+  --font-pinyon: var(--font-pinyon);
+  --font-dancing: var(--font-dancing);
+  --font-delius: var(--font-delius);
+  --font-reenie: var(--font-reenie);
+  --font-noto-urdu: var(--font-noto-urdu);
 
   /* Custom Ink Colors */
   --color-ink-black: var(--ink-black);
@@ -267,12 +268,12 @@
   }
 
   .yuubin-urdu-ui body {
-    font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif;
+    font-family: var(--font-noto-urdu), 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', 'Segoe UI', Arial, sans-serif;
     line-height: 1.85;
   }
 
   .yuubin-urdu-ui .font-serif {
-    font-family: 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Georgia, serif;
+    font-family: var(--font-noto-urdu), 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Georgia, serif;
   }
 
   .yuubin-urdu-ui [dir='ltr'] {

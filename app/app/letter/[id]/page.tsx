@@ -575,7 +575,11 @@ export default function LetterPage() {
 
               <div
                 dir={direction}
-                className={`whitespace-pre-wrap text-lg leading-relaxed ${align} ${font} ${parsed.color}`}
+                style={{
+                  fontFamily: isUrdu ? undefined : (font === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${font.replace('font-', '')}), cursive, sans-serif`),
+                  color: parsed.color === 'text-foreground' ? undefined : `var(--ink-${parsed.color.replace('text-ink-', '')})`
+                }}
+                className={`whitespace-pre-wrap text-lg leading-relaxed ${align}`}
               >
                 {parsed.text}
               </div>

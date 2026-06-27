@@ -7,6 +7,42 @@ import { CookieConsent } from '@/components/cookie-consent'
 import { TanStackQueryProvider } from '@/components/tanstack-query-provider'
 import './globals.css'
 import { Toaster } from 'sonner'
+import { Pinyon_Script, Dancing_Script, Delius, Reenie_Beanie, Noto_Nastaliq_Urdu } from 'next/font/google'
+
+const pinyon = Pinyon_Script({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-pinyon',
+  display: 'swap',
+})
+
+const dancing = Dancing_Script({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  variable: '--font-dancing',
+  display: 'swap',
+})
+
+const delius = Delius({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-delius',
+  display: 'swap',
+})
+
+const reenie = Reenie_Beanie({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-reenie',
+  display: 'swap',
+})
+
+const notoUrdu = Noto_Nastaliq_Urdu({
+  weight: ['400', '700'],
+  subsets: ['arabic'],
+  variable: '--font-noto-urdu',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
   title: 'Yuubin - Mindful Letter Exchange',
@@ -37,7 +73,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background modern">
+    <html lang="en" className={`bg-background modern ${pinyon.variable} ${dancing.variable} ${delius.variable} ${reenie.variable} ${notoUrdu.variable}`}>
       <body className="font-sans antialiased bg-background text-foreground">
         <PostalBgDecoration />
         <ThemeProvider>

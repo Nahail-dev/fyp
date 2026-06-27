@@ -670,9 +670,11 @@ export default function ComposePage() {
                 onChange={(e) =>
                   updateTextField('content', e.target.value)
                 }
-                className={`w-full px-4 py-3 border border-border rounded-sm bg-input placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-96 resize-none leading-loose ${writingAlign} ${
-                  isUrdu ? writingFont : selectedFont
-                } ${selectedColor}`}
+                style={{
+                  fontFamily: isUrdu ? undefined : (selectedFont === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${selectedFont.replace('font-', '')}), cursive, sans-serif`),
+                  color: selectedColor === 'text-foreground' ? undefined : `var(--ink-${selectedColor.replace('text-ink-', '')})`
+                }}
+                className={`w-full px-4 py-3 border border-border rounded-sm bg-input placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-96 resize-none leading-loose ${writingAlign}`}
                 required
               />
               <p className="text-xs text-muted-foreground">
@@ -860,9 +862,11 @@ export default function ComposePage() {
             {/* Content */}
             <div
               dir={writingDirection}
-              className={`text-lg leading-loose whitespace-pre-wrap ${writingAlign} ${
-                isUrdu ? writingFont : selectedFont
-              } ${selectedColor}`}
+              style={{
+                fontFamily: isUrdu ? undefined : (selectedFont === 'font-serif' ? 'Georgia, Cambria, "Times New Roman", Times, serif' : `var(--font-${selectedFont.replace('font-', '')}), cursive, sans-serif`),
+                color: selectedColor === 'text-foreground' ? undefined : `var(--ink-${selectedColor.replace('text-ink-', '')})`
+              }}
+              className={`text-lg leading-loose whitespace-pre-wrap ${writingAlign}`}
             >
               {letterData.content || (isUrdu ? 'آپ کے خط کا متن یہاں ظاہر ہوگا...' : 'Your letter content will appear here...')}
             </div>
